@@ -14,21 +14,22 @@ class ProductsImport implements ToModel, WithHeadingRow
     {
         // 1. Normalización de Categoría
         // firstOrCreate busca por el nombre, si no existe, lo crea y nos devuelve el objeto
-        $category = Category::firstOrCreate(['name' => $row['f']]);
+        $category = Category::firstOrCreate(['name' => $row['C']]);
 
         // 2. Normalización de Laboratorio
-        $laboratory = Laboratory::firstOrCreate(['name' => $row['d']]);
+        $laboratory = Laboratory::firstOrCreate(['name' => $row['D']]);
 
         // 3. Creación del Producto
         return new Product([
             'id'           => $row['A'], // Usamos la columna A del Excel como identificador único
-            'name'          => $row['b'], // Usamos la columna B del Excel para el nombre del producto
+            'name'          => $row['B'], // Usamos la columna B del Excel para el nombre del producto
             'category_id'   => $category->id,
             'laboratory_id' => $laboratory->id,
-            'has_iva'       => ($row['iva'] === 'S'), // Convierte 'S' en true, cualquier otra cosa en false
-            'price'         => $row['h'], // Usamos la columna H del Excel para el precio
-            'is_controlled' => ($row['i'] === 'S'), // Usamos la columna I del Excel para determinar si es controlado (S/N)
-            'image_path'    => $row['g'], // Usamos la columna G del Excel para la ruta de la imagen
+            'cantidad'      => $row['F'], // Usamos la columna F del Excel para la cantidad
+            'has_iva'       => ($row['E'] === 'S'), // Convierte 'E' en true, cualquier otra cosa en false
+            'price'         => $row['H'], // Usamos la columna H del Excel para el precio
+            'is_controlled' => ($row['I'] === 'S'), // Usamos la columna I del Excel para determinar si es controlado (S/N)
+            'image_path'    => $row['G'], // Usamos la columna G del Excel para la ruta de la imagen
         ]);
     }
 }

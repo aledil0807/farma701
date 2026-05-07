@@ -15,7 +15,7 @@ return new class extends Migration {
             // Relaciones (Foreign Keys)
             $table->foreignId('category_id')->constrained();
             $table->foreignId('laboratory_id')->constrained();
-
+            $table->integer('cantidad');
             $table->boolean('has_iva')->default(false); // Aquí guardaremos true/false
             $table->decimal('price', 10, 2);
             $table->boolean('is_controlled')->default(false);
