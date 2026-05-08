@@ -1,51 +1,52 @@
-<?php
+<div class="catalog-section section-space">
+    <div class="container">
+        <h2 class="section-title">Catálogo</h2>
 
-use Livewire\Component;
-
-new class extends Component {
-    //
-};
-?>
-
-<div class="p-6">
-    <div class="mb-8 max-w-xl mx-auto">
-        <input wire:model.live="search" type="text" placeholder="Buscar por nombre o laboratorio..."
-            class="w-full px-4 py-3 rounded-full border-2 border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-300 shadow-lg">
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        @foreach($products as $product)
-            <div
-                class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition duration-300 border border-gray-100">
-                <div class="h-48 bg-gray-200 flex items-center justify-center">
-                    @if($product->image_path)
-                        <img src="{{$product->image_path}}" alt="{{ $product->name }}"
-                            class="h-full w-full object-cover">
-                    @else
-                        <span class="text-gray-400">Sin imagen</span>
-                    @endif
-                </div>
-                <div class="p-4">
-                    <span class="text-xs font-semibold text-blue-600 uppercase">{{ $product->laboratory->name }}</span>
-                    <h3 class="text-lg font-bold text-gray-800 truncate">{{ $product->name }}</h3>
-                    <p class="text-gray-500 text-sm mb-2">Ref: {{ $product->id }}</p>
-
-                    <div class="flex justify-between items-center mt-4">
-                        <span class="text-2xl font-bold text-green-600">${{ number_format($product->price, 2) }}</span>
-                        @if($product->has_iva)
-                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">IVA</span>
-                        @endif
+        <div class="catalog-products-grid">
+            @forelse ($products as $product)
+                <a class="product-card" href="#">
+                    <div class="product-card__image">
+                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}">
                     </div>
 
-                    @if($product->is_controlled)
-                        <p class="mt-2 text-red-500 text-xs font-bold">⚠️ PRODUCTO CONTROLADO</p>
-                    @endif
-                </div>
-            </div>
-        @endforeach
-    </div>
+                    <div class="product-card__body">
+                        <div class="product-card__title-wrap">
+                            <h3 class="product-card__title">{{ $product->name }}</h3>
+                        </div>
 
-    <div class="mt-8">
-        {{ $products->links() }}
+                        <p class="product-card__brand">
+                            {{ $product->laboratory?->name ?? 'Sin laboratorio' }}
+                        </p>
+
+                        <span class="product-card__status {{ $product->cantidad > 0 ? 'is-available' : 'is-unavailable' }}">
+                            {{ $product->cantidad > 0 ? '¡Disponible!' : 'No disponible' }}
+                        </span>
+
+                        @php
+                            $priceBs = $exchangeRate > 0 ? $product->price * $exchangeRate : null;
+                        @endphp
+                        <p class="product-card__price">
+                            $ {{ number_format($product->price, 2, ',', '.') }} @if($priceBs)
+                               | Bs. {{ number_format($priceBs, 2, ',', '.') }}
+                            @endif
+                        </p>
+
+                        <span class="product-card__button">Agregar al carrito</span>
+                    </div>
+                </a>
+
+            @empty
+                <p class="catalog-empty">No se encontraron productos.</p>
+            @endforelse
+        </div>
+
+        @if ($hasMoreProducts)
+            <div class="catalog-footer" style="text-align:center; margin-top:20px;">
+                <button type="button" class="btn-view-more" wire:click="loadMore">
+                    <span wire:loading.remove wire:target="loadMore">Ver más productos</span>
+                    <span wire:loading wire:target="loadMore">Cargando...</span>
+                </button>
+            </div>
+        @endif
     </div>
 </div>

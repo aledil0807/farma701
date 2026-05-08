@@ -4,33 +4,51 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use App\Models\Product;
-use Livewire\WithPagination;
+use App\Services\ExchangeRateService;
 
 class ProductSearch extends Component
 {
-    use WithPagination;
-
-    // Esta variable está vinculada al input de búsqueda
     public $search = '';
+    public $perPage = 15;
+    public $exchangeRate = 0;
 
-    // Resetea la página a la 1 cada vez que el usuario escribe algo
+    public function mount(ExchangeRateService $exchangeRateService)
+    {
+        try {
+            $this->exchangeRate = $exchangeRateService->getOfficialUsdToBsRate();
+        } catch (\Exception $e) {
+            $this->exchangeRate = 0;
+        }
+    }
+
     public function updatingSearch()
     {
-        $this->resetPage();
+        $this->perPage = 15;
+    }
+
+    public function loadMore()
+    {
+        $this->perPage += 15;
     }
 
     public function render()
     {
-        // Buscamos productos que coincidan con el nombre 
-        // O que el laboratorio asociado coincida con la búsqueda
-        $products = Product::where('name', 'like', '%' . $this->search . '%')
-            ->orWhereHas('laboratory', function($query) {
-                $query->where('name', 'like', '%' . $this->search . '%');
+        $query = Product::with(['laboratory'])
+            ->where(function ($query) {
+                $query->where('name', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('laboratory', function ($labQuery) {
+                        $labQuery->where('name', 'like', '%' . $this->search . '%');
+                    });
             })
-            ->paginate(12);
+            ->orderBy('id');
+
+        $totalProducts = (clone $query)->count();
+        $products = $query->take($this->perPage)->get();
 
         return view('livewire.product-search', [
-            'products' => $products
+            'products' => $products,
+            'hasMoreProducts' => $totalProducts > $this->perPage,
+            'exchangeRate' => $this->exchangeRate,
         ]);
     }
 }

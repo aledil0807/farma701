@@ -36,7 +36,7 @@ class ProductController extends Controller
             $file->storeAs('products', $name, 'public');
 
             // Guardamos en la base de datos con el prefijo incluido: "products/aspirina.jpg"
-            $data['image_path'] = 'products/' . $name;
+            $data['image_path'] = $name;
         }
 
         // Convertir checkbox a booleano

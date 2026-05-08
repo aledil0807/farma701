@@ -25,7 +25,7 @@ class Product extends Model
     {
         if ($this->image_path) {
             // Esto generará automáticamente la URL correcta: http://localhost:8000/storage/products/imagen.jpg
-            return asset('storage/' . $this->image_path);
+            return asset('storage/products/' . $this->image_path);
         }
 
         // Imagen por defecto si no hay nada en la base de datos

@@ -29,7 +29,7 @@ class ProductsImport implements ToModel
             'has_iva'       => ($row['4'] == '1'), // Convierte 'E' en true, cualquier otra cosa en false
             'price'         => $row['7'], // Usamos la columna H del Excel para el precio
             'is_controlled' => ($row['8'] === 'S'), // Usamos la columna I del Excel para determinar si es controlado (S/N)
-            'image_path'    => 'products' . $row['6'], // Usamos la columna G del Excel para la ruta de la imagen
+            'image_path'    =>  $row['6'], // Usamos la columna G del Excel para la ruta de la imagen
         ]);
     }
 }
