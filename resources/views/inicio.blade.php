@@ -64,8 +64,8 @@ $catalogBlocks = [
           <img src="assets/img/logo-nuevo.jpeg" alt="Farmacia 701">
         </a>
 
-        <form class="search-bar" action="#" method="get">
-          <input type="text" name="q">
+        <form class="search-bar" action="{{ route('search.results') }}" method="get">
+          <input type="text" name="q" value="{{ request('q') }}" placeholder="Buscar productos, marcas o categorías">
           <button type="submit" aria-label="Buscar">
             <i class="fa-solid fa-magnifying-glass"></i>
           </button>
@@ -73,7 +73,7 @@ $catalogBlocks = [
 
         <div class="header-actions">
           <a href="#" aria-label="Usuario"><i class="fa-solid fa-user"></i></a>
-          <a href="#" aria-label="Carrito" class="cart-link">
+          <a href="{{ route('cart.index') }}" aria-label="Carrito" class="cart-link">
             <i class="fa-solid fa-cart-shopping"></i>
           </a>
         </div>
@@ -179,7 +179,7 @@ $catalogBlocks = [
           </div>
 
           <div class="products-grid">
-           @foreach($monthlyProducts as $product)
+            @foreach($monthlyProducts as $product)
               <a class="product-card" href="<?= htmlspecialchars($product['link']) ?>">
                 <div class="product-card__image">
                   <img src="<?= htmlspecialchars($product['image']) ?>" alt="<?= htmlspecialchars($product['title']) ?>">
@@ -248,7 +248,7 @@ $catalogBlocks = [
       </div>
     </section>-->
     <livewire:product-search />
-    
+
   </main>
 
   <footer class="site-footer"></footer>

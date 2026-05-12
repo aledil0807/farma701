@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmacia 701 | Resultados de búsqueda</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    @livewireStyles
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="topbar">
+            <div class="container topbar__content">
+                <p>Farmacia 701 ¡Somos tus aliados en salud!</p>
+            </div>
+        </div>
+
+        <div class="header-main">
+            <div class="container header-main__content">
+                <a href="{{ route('home') }}" class="brand">
+                    <img src="{{ asset('assets/img/logo-nuevo.jpeg') }}" alt="Farmacia 701">
+                </a>
+
+                <form class="search-bar" action="{{ route('search.results') }}" method="get">
+                    <input type="text" name="q" value="{{ request('q') }}"
+                        placeholder="Buscar productos, marcas o categorías">
+                    <button type="submit" aria-label="Buscar">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </form>
+
+                <div class="header-actions">
+                    <a href="#" aria-label="Usuario"><i class="fa-solid fa-user"></i></a>
+                    <a href="#" aria-label="Carrito" class="cart-link">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <nav class="main-nav">
+            <div class="container">
+                <ul class="nav-menu">
+                    <li><a href="{{ route('home') }}">Inicio</a></li>
+
+                    <li class="has-dropdown">
+                        <button class="dropdown-toggle" type="button">
+                            Laboratorios <i class="fa-solid fa-angle-down"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a href="#">Calox</a></li>
+                            <li><a href="#">Pharmetique</a></li>
+                            <li><a href="#">Rowe</a></li>
+                            <li><a href="#">Valmorca</a></li>
+                            <li><a href="#">Farma</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="has-dropdown">
+                        <button class="dropdown-toggle" type="button">
+                            Categorías <i class="fa-solid fa-angle-down"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a href="#">Salud y Medicamentos</a></li>
+                            <li><a href="#">Cuidado Personal</a></li>
+                            <li><a href="#">Nutrición</a></li>
+                            <li><a href="#">Suministros Médicos</a></li>
+                            <li><a href="#">Hogar</a></li>
+                            <li><a href="#">Equipos Médicos</a></li>
+                            <li><a href="#">Línea Infantil</a></li>
+                            <li><a href="#">Alimentos y Bebidas</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="has-dropdown">
+                        <button class="dropdown-toggle" type="button">
+                            Directorio Médico <i class="fa-solid fa-angle-down"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a href="#">Medicina General</a></li>
+                            <li><a href="#">Pediatría</a></li>
+                            <li><a href="#">Cardiología</a></li>
+                            <li><a href="#">Ginecología</a></li>
+                            <li><a href="#">Traumatología</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <livewire:product-search :initial-search="request('q')" :show-search-header="true" />
+    </main>
+
+    <footer class="site-footer">
+        <div class="container search-footer__content">
+            <p>Encuentra todos tus medicamentos, productos de salud, cuidado personal y suplementos deportivos.</p>
+            <p>Av. 17 de diciembre C/C Calle Madrid, Local # 28, Séctor Negro Primero, Parroquia catedral, Frente a la
+                clínica Santa Ana, Ciudad Bolívar - Venezuela.</p>
+            <p>¡Somos tus Aliados en Salud!</p>
+            <p>Farmacia 701, C.A</p>
+        </div>
+    </footer>
+
+    <script src="{{ asset('js/main.js') }}"></script>
+    @livewireScripts
+</body>
+
+</html>

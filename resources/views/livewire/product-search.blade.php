@@ -1,9 +1,38 @@
-<div class="catalog-section section-space">
+<div class="search-results-page section-space">
     <div class="container">
-        <h2 class="section-title">Catálogo</h2>
+        @if ($showSearchHeader)
+            <div class="search-results-header">
+                <div class="search-results-header__left">
+                    <h1 class="search-results-title">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        Resultados de tu búsqueda: <span>{{ $search }}</span>
+                    </h1>
+                    <p class="search-results-count">{{ $totalProducts }} productos encontrados</p>
+                </div>
+
+                <div class="search-results-filter">
+                    <label for="filter">Filtrar por:</label>
+                    <select id="filter" wire:model.live="filter">
+                        <option value="">Orden original</option>
+                        <option value="name_asc">Nombre A-Z</option>
+                        <option value="name_desc">Nombre Z-A</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="search-results-divider"></div>
+        @else
+            <h2 class="section-title">Catálogo</h2>
+        @endif
+
+        <div class="search-results-divider"></div>
 
         <div class="catalog-products-grid">
             @forelse ($products as $product)
+                @php
+                    $priceBs = $exchangeRate > 0 ? $product->price * $exchangeRate : null;
+                @endphp
+
                 <a class="product-card" href="#">
                     <div class="product-card__image">
                         <img src="{{ $product->image_url }}" alt="{{ $product->name }}">
@@ -22,19 +51,19 @@
                             {{ $product->cantidad > 0 ? '¡Disponible!' : 'No disponible' }}
                         </span>
 
-                        @php
-                            $priceBs = $exchangeRate > 0 ? $product->price * $exchangeRate : null;
-                        @endphp
                         <p class="product-card__price">
-                            $ {{ number_format($product->price, 2, ',', '.') }} @if($priceBs)
-                               | Bs. {{ number_format($priceBs, 2, ',', '.') }}
+                            @if($priceBs)
+                                Bs. {{ number_format($priceBs, 2, ',', '.') }} |
                             @endif
+                            $ {{ number_format($product->price, 2, ',', '.') }}
                         </p>
 
-                        <span class="product-card__button">Agregar al carrito</span>
+                        <form action="{{ route('cart.add', $product->id) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="product-card__button">Agregar al carrito</button>
+                        </form>
                     </div>
                 </a>
-
             @empty
                 <p class="catalog-empty">No se encontraron productos.</p>
             @endforelse
