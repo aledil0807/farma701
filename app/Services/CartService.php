@@ -54,7 +54,7 @@ class CartService
     {
         $cart = $this->getCart();
 
-        if (! isset($cart['items'][$productId])) {
+        if (!isset($cart['items'][$productId])) {
             return;
         }
 
@@ -103,24 +103,32 @@ class CartService
         ];
     }
     public function validateStock(): array
-{
-    $cart = $this->getCart();
-    $items = $cart['items'];
-    $errors = [];
+    {
+        $cart = $this->getCart();
+        $items = $cart['items'];
+        $errors = [];
 
-    foreach ($items as $item) {
-        $product = Product::find($item['product_id']);
+        foreach ($items as $item) {
+            $product = Product::find($item['product_id']);
 
-        if (! $product) {
-            $errors[] = "El producto {$item['name']} ya no existe.";
-            continue;
+            if (!$product) {
+                $errors[] = "El producto {$item['name']} ya no existe.";
+                continue;
+            }
+
+            if ((int) $item['quantity'] > (int) $product->cantidad) {
+                $errors[] = "Stock insuficiente para {$product->name}. Disponible: {$product->cantidad}, solicitado: {$item['quantity']}.";
+            }
         }
 
-        if ((int) $item['quantity'] > (int) $product->cantidad) {
-            $errors[] = "Stock insuficiente para {$product->name}. Disponible: {$product->cantidad}, solicitado: {$item['quantity']}.";
-        }
+        return $errors;
     }
+    public function getProductQuantity(int $productId): int
+    {
+        $cart = $this->getCart();
 
-    return $errors;
-}
+        return isset($cart['items'][$productId])
+            ? (int) $cart['items'][$productId]['quantity']
+            : 0;
+    }
 }

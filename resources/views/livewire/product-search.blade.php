@@ -1,30 +1,29 @@
-<div class="search-results-page section-space">
-    <div class="container">
-        @if ($showSearchHeader)
-            <div class="search-results-header">
-                <div class="search-results-header__left">
-                    <h1 class="search-results-title">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        Resultados de tu búsqueda: <span>{{ $search }}</span>
-                    </h1>
-                    <p class="search-results-count">{{ $totalProducts }} productos encontrados</p>
-                </div>
+<div class="search-results-page">
 
-                <div class="search-results-filter">
-                    <label for="filter">Filtrar por:</label>
-                    <select id="filter" wire:model.live="filter">
-                        <option value="">Orden original</option>
-                        <option value="name_asc">Nombre A-Z</option>
-                        <option value="name_desc">Nombre Z-A</option>
-                    </select>
-                </div>
+    @if ($showSearchHeader)
+        <div class="search-results-header">
+            <div class="search-results-header__left">
+                <h1 class="search-results-title">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    Resultados de tu búsqueda: <span>{{ $search }}</span>
+                </h1>
+                <p class="search-results-count">{{ $totalProducts }} productos encontrados</p>
             </div>
-
-            <div class="search-results-divider"></div>
-        @else
+        </div>
+        <div class="search-results-filter">
+            <label for="filter">Filtrar por:</label>
+            <select id="filter" wire:model.live="filter">
+                <option value="">Orden original</option>
+                <option value="name_asc">Nombre A-Z</option>
+                <option value="name_desc">Nombre Z-A</option>
+            </select>
+        </div>
+    @else
+        <div class="container">
             <h2 class="section-title">Catálogo</h2>
-        @endif
-
+        </div>
+    @endif
+    <div class="container">
         <div class="search-results-divider"></div>
 
         <div class="catalog-products-grid">
@@ -33,7 +32,7 @@
                     $priceBs = $exchangeRate > 0 ? $product->price * $exchangeRate : null;
                 @endphp
 
-                <a class="product-card" href="#">
+                <a class="product-card">
                     <div class="product-card__image">
                         <img src="{{ $product->image_url }}" alt="{{ $product->name }}">
                     </div>
@@ -55,13 +54,31 @@
                             @if($priceBs)
                                 Bs. {{ number_format($priceBs, 2, ',', '.') }} |
                             @endif
-                            $ {{ number_format($product->price, 2, ',', '.') }}
+                            $ {{ number_format($product->price, 2, '.', ',') }}
                         </p>
 
-                        <form action="{{ route('cart.add', $product->id) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="product-card__button">Agregar al carrito</button>
-                        </form>
+                        <div x-data="cartControl({
+                                        productId: {{ $product->id }},
+                                        initialQuantity: {{ app(\App\Services\CartService::class)->getProductQuantity($product->id) }},
+                                        addUrl: '{{ route('cart.ajax.add', $product->id) }}',
+                                        incrementUrl: '{{ route('cart.ajax.increment', $product->id) }}',
+                                        decrementUrl: '{{ route('cart.ajax.decrement', $product->id) }}'
+                                    })" class="cart-inline-control">
+                            <template x-if="quantity <= 0">
+                                <button type="button" class="product-card__button" @click="add()">
+                                    <span>Agregar al carrito</span>
+                                    
+                                </button>
+                            </template>
+
+                            <template x-if="quantity > 0">
+                                <div class="product-qty-control">
+                                    <button type="button" class="product-qty-control__btn" @click="decrement()">-</button>
+                                    <span class="product-qty-control__value" x-text="quantity"></span>
+                                    <button type="button" class="product-qty-control__btn" @click="increment()">+</button>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </a>
             @empty

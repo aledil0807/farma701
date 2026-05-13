@@ -146,4 +146,128 @@ class CartController extends Controller
 
         return redirect()->away($whatsAppUrl);
     }
+
+    public function ajaxAdd(Request $request, Product $product, CartService $cartService, ExchangeRateService $exchangeRateService)
+    {
+        $cartService->add($product, 1);
+
+        $exchangeRate = 0;
+        try {
+            $exchangeRate = $exchangeRateService->getOfficialUsdToBsRate();
+        } catch (\Exception $e) {
+            $exchangeRate = 0;
+        }
+
+        return response()->json([
+            'success' => true,
+            'quantity' => $cartService->getProductQuantity($product->id),
+            'cart' => $cartService->getCart(),
+            'totals' => $cartService->totals($exchangeRate),
+        ]);
+    }
+
+    public function ajaxIncrement(Product $product, CartService $cartService, ExchangeRateService $exchangeRateService)
+    {
+        $cartService->increment($product->id);
+
+        $exchangeRate = 0;
+        try {
+            $exchangeRate = $exchangeRateService->getOfficialUsdToBsRate();
+        } catch (\Exception $e) {
+            $exchangeRate = 0;
+        }
+
+        return response()->json([
+            'success' => true,
+            'quantity' => $cartService->getProductQuantity($product->id),
+            'cart' => $cartService->getCart(),
+            'totals' => $cartService->totals($exchangeRate),
+        ]);
+    }
+
+    public function ajaxDecrement(Product $product, CartService $cartService, ExchangeRateService $exchangeRateService)
+    {
+        $cartService->decrement($product->id);
+
+        $exchangeRate = 0;
+        try {
+            $exchangeRate = $exchangeRateService->getOfficialUsdToBsRate();
+        } catch (\Exception $e) {
+            $exchangeRate = 0;
+        }
+
+        return response()->json([
+            'success' => true,
+            'quantity' => $cartService->getProductQuantity($product->id),
+            'cart' => $cartService->getCart(),
+            'totals' => $cartService->totals($exchangeRate),
+        ]);
+    }
+
+    public function ajaxRemove(Product $product, CartService $cartService, ExchangeRateService $exchangeRateService)
+    {
+        $cartService->remove($product->id);
+
+        $exchangeRate = 0;
+        try {
+            $exchangeRate = $exchangeRateService->getOfficialUsdToBsRate();
+        } catch (\Exception $e) {
+            $exchangeRate = 0;
+        }
+
+        return response()->json([
+            'success' => true,
+            'cart' => $cartService->getCart(),
+            'totals' => $cartService->totals($exchangeRate),
+        ]);
+    }
+
+    public function ajaxClear(CartService $cartService, ExchangeRateService $exchangeRateService)
+    {
+        $cartService->clear();
+
+        $exchangeRate = 0;
+        try {
+            $exchangeRate = $exchangeRateService->getOfficialUsdToBsRate();
+        } catch (\Exception $e) {
+            $exchangeRate = 0;
+        }
+
+        return response()->json([
+            'success' => true,
+            'cart' => $cartService->getCart(),
+            'totals' => $cartService->totals($exchangeRate),
+        ]);
+    }
+
+    public function ajaxSummary(CartService $cartService, ExchangeRateService $exchangeRateService)
+    {
+        $exchangeRate = 0;
+        try {
+            $exchangeRate = $exchangeRateService->getOfficialUsdToBsRate();
+        } catch (\Exception $e) {
+            $exchangeRate = 0;
+        }
+
+        return response()->json([
+            'success' => true,
+            'totals' => $cartService->totals($exchangeRate),
+        ]);
+    }
+
+    public function ajaxDetail(CartService $cartService, ExchangeRateService $exchangeRateService)
+    {
+        $exchangeRate = 0;
+        try {
+            $exchangeRate = $exchangeRateService->getOfficialUsdToBsRate();
+        } catch (\Exception $e) {
+            $exchangeRate = 0;
+        }
+
+        return response()->json([
+            'success' => true,
+            'cart' => $cartService->getCart(),
+            'totals' => $cartService->totals($exchangeRate),
+        ]);
+    }
 }

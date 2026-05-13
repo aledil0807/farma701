@@ -11,6 +11,11 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script src="{{ asset('js/main.js') }}" defer></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
 </head>
 
 <body>
@@ -37,12 +42,15 @@
 
                 <div class="header-actions">
                     <a href="#" aria-label="Usuario"><i class="fa-solid fa-user"></i></a>
-                    <a href="{{ route('cart.index') }}" aria-label="Carrito" class="cart-link">
-                        <i class="fa-solid fa-cart-shopping"></i>
-                        @if(($totals['units_count'] ?? 0) > 0)
-                            <span class="cart-badge">{{ $totals['units_count'] }}</span>
-                        @endif
-                    </a>
+
+                    <div x-data="cartBadge({ initialUnits: {{ $totals['units_count'] ?? 0 }} })">
+                        <a href="{{ route('cart.index') }}" aria-label="Carrito" class="cart-link">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                            <template x-if="unitsCount > 0">
+                                <span class="cart-badge" x-text="unitsCount"></span>
+                            </template>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -50,7 +58,104 @@
 
     <main class="cart-page">
         <div class="cart-page__grid">
-            <section class="cart-summary">
+            <section class="cart-summary" x-data="cartPage({
+                    items: {{ \Illuminate\Support\Js::from(array_values($cartItems)) }},
+                    totals: {{ \Illuminate\Support\Js::from($totals) }},
+                    exchangeRate: {{ $exchangeRate }}
+                })">
+                <div class="cart-summary__header">
+                    <h1>Resumen de compra</h1>
+                    <p>Tasa del día <span x-text="formatBs(exchangeRate)"></span> Bs</p>
+                </div>
+
+                <div class="cart-items">
+                    <template x-if="items.length > 0">
+                        <div>
+                            <template x-for="item in items" :key="item.product_id">
+                                <article class="cart-item">
+                                    <div class="cart-item__image">
+                                        <img :src="item.image_url" :alt="item.name">
+                                    </div>
+
+                                    <div class="cart-item__info">
+                                        <h3 x-text="item.name"></h3>
+                                        <p x-text="item.laboratory"></p>
+                                        <strong>
+                                            Bs. <span x-text="formatBs(lineBs(item))"></span>
+                                            | $
+                                            <span x-text="formatUsd(lineUsd(item))"></span>
+                                        </strong>
+                                    </div>
+
+                                    <div class="cart-item__qty">
+                                        <button type="button" class="qty-btn"
+                                            @click="decrement(item.product_id)">-</button>
+
+                                        <span class="qty-value" x-text="item.quantity"></span>
+
+                                        <button type="button" class="qty-btn"
+                                            @click="increment(item.product_id)">+</button>
+                                    </div>
+
+                                    <div class="cart-item__total">
+                                        <span>Total</span>
+                                        <strong>
+                                            Bs. <span
+                                                x-text="formatBs((totals.subtotal_usd || 0) * exchangeRate)"></span>
+                                            |
+                                            $ <span x-text="formatUsd(totals.subtotal_usd)"></span>
+                                        </strong>
+                                    </div>
+
+                                    <div class="cart-item__remove">
+                                        <button type="button" class="remove-btn" @click="remove(item.product_id)"
+                                            aria-label="Eliminar">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </article>
+                            </template>
+                        </div>
+                    </template>
+
+                    <template x-if="items.length === 0">
+                        <div class="cart-empty">
+                            <p>Tu carrito está vacío.</p>
+                            <a href="{{ route('home') }}" class="btn-view-more">Ir al catálogo</a>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="cart-summary__footer" x-show="items.length > 0">
+                    <button type="button" class="clear-cart-btn" @click="clear()">
+                        Vaciar carrito
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+
+                    <div class="cart-grand-total">
+                        <h2>Total a cancelar</h2>
+                        <p class="cart-grand-total__discount">-5% descuento: Bs. 1.234,56 | $ 1.23</p>
+                        <p class="cart-grand-total__amount">
+                            Bs. <span x-text="formatBs(totals.subtotal_bs)"></span>
+                            | $
+                            <span x-text="formatUsd(totals.subtotal_usd)"></span>
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <aside class="cart-client">
+                <h2>Datos del cliente</h2>
+                @if ($errors->any())
+                    <div class="cart-alert cart-alert--error">
+                        <ul>
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
                 @if(session('stock_errors'))
                     <div class="cart-alert cart-alert--error">
                         <ul>
@@ -66,99 +171,6 @@
                         {{ session('success') }}
                     </div>
                 @endif
-                <div class="cart-summary__header">
-                    <h1>Resumen de compra</h1>
-                    <p>Tasa del día <span>{{ number_format($exchangeRate, 2, ',', '.') }} Bs</span></p>
-                </div>
-
-                @if(count($cartItems))
-                    <div class="cart-items">
-                        @foreach($cartItems as $item)
-                            @php
-                                $lineUsd = $item['price_usd'] * $item['quantity'];
-                                $lineBs = $exchangeRate > 0 ? $lineUsd * $exchangeRate : 0;
-                            @endphp
-
-                            <article class="cart-item">
-                                <div class="cart-item__image">
-                                    <img src="{{ $item['image_url'] }}" alt="{{ $item['name'] }}">
-                                </div>
-
-                                <div class="cart-item__info">
-                                    <h3>{{ $item['name'] }}</h3>
-                                    <p>{{ $item['laboratory'] }}</p>
-                                    <strong>
-                                        Bs. {{ number_format($lineBs, 2, ',', '.') }}
-                                        | $
-                                        {{ number_format($lineUsd, 2, '.', ',') }}
-                                    </strong>
-                                </div>
-
-                                <div class="cart-item__qty">
-                                    <form action="{{ route('cart.decrement', $item['product_id']) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="qty-btn">-</button>
-                                    </form>
-
-                                    <span class="qty-value">{{ $item['quantity'] }}</span>
-
-                                    <form action="{{ route('cart.increment', $item['product_id']) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="qty-btn">+</button>
-                                    </form>
-                                </div>
-
-                                <div class="cart-item__total">
-                                    <span>Total</span>
-                                    <strong>
-                                        Bs. {{ number_format($lineBs, 2, ',', '.') }}
-                                        | $
-                                        {{ number_format($lineUsd, 2, '.', ',') }}
-                                    </strong>
-                                </div>
-
-                                <div class="cart-item__remove">
-                                    <form action="{{ route('cart.remove', $item['product_id']) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="remove-btn" aria-label="Eliminar">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </article>
-                        @endforeach
-                    </div>
-
-                    <div class="cart-summary__footer">
-                        <form action="{{ route('cart.clear') }}" method="POST">
-                            @csrf
-                            <button type="submit" class="clear-cart-btn">
-                                Vaciar carrito
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </form>
-
-                        <div class="cart-grand-total">
-                            <h2>Total a cancelar</h2>
-                            <p class="cart-grand-total__discount">-5% descuento: Bs. 1.234,56 | $ 1.23</p>
-                            <p class="cart-grand-total__amount">
-                                Bs. {{ number_format($totals['subtotal_bs'], 2, ',', '.') }}
-                                | $
-                                {{ number_format($totals['subtotal_usd'], 2, '.', ',') }}
-                            </p>
-                        </div>
-                    </div>
-                @else
-                    <div class="cart-empty">
-                        <p>Tu carrito está vacío.</p>
-                        <a href="{{ route('home') }}" class="btn-view-more">Ir al catálogo</a>
-                    </div>
-                @endif
-            </section>
-
-            <aside class="cart-client">
-                <h2>Datos del cliente</h2>
-
                 <form action="{{ route('cart.checkout') }}" method="POST" class="cart-client__form">
                     @csrf
 
@@ -214,8 +226,6 @@
             <p>Farmacia 701, C.A</p>
         </div>
     </footer>
-
-    <script src="{{ asset('js/main.js') }}"></script>
 </body>
 
 </html>

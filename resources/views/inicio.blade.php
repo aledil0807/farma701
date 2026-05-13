@@ -39,6 +39,7 @@ $catalogBlocks = [
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>Farmacia 701 | Inicio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -47,6 +48,8 @@ $catalogBlocks = [
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="{{ asset('js/main.js') }}"></script>
   @livewireStyles
 </head>
 
@@ -72,10 +75,16 @@ $catalogBlocks = [
         </form>
 
         <div class="header-actions">
-          <a href="#" aria-label="Usuario"><i class="fa-solid fa-user"></i></a>
-          <a href="{{ route('cart.index') }}" aria-label="Carrito" class="cart-link">
-            <i class="fa-solid fa-cart-shopping"></i>
-          </a>
+          <a aria-label="Usuario"><i class="fa-solid fa-user"></i></a>
+          <div
+            x-data="cartBadge({ initialUnits: {{ app(\App\Services\CartService::class)->totals()['units_count'] ?? 0 }} })">
+            <a href="{{ route('cart.index') }}" aria-label="Carrito" class="cart-link">
+              <i class="fa-solid fa-cart-shopping"></i>
+              <template x-if="unitsCount > 0">
+                <span class="cart-badge" x-text="unitsCount"></span>
+              </template>
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -253,7 +262,7 @@ $catalogBlocks = [
 
   <footer class="site-footer"></footer>
 
-  <script src="js/main.js"></script>
+
   @livewireScripts
 </body>
 

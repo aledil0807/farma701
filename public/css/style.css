@@ -698,12 +698,15 @@ input {
 .catalog-footer .btn-view-more:hover {
   background-color: var(--blue-dark);
 }
-
+.search-results-header{
+  background-color: #e5f0fa;
+  padding: 20px 0;
+}
 .search-results-title {
   margin: 0;
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 1.7rem;
   color: #154a79;
+  margin-left: 44px;
 }
 
 .search-results-title i {
@@ -720,6 +723,7 @@ input {
   margin: 4px 0 0;
   font-size: 1.2rem;
   color: #4d5d6c;
+  margin-left: 44px;
 }
 
 .search-results-filter {
@@ -727,6 +731,8 @@ input {
   align-items: center;
   gap: 10px;
   margin-top: 18px;
+  justify-content: end;
+  margin-right: 5%;
 }
 
 .search-results-filter label {
@@ -742,6 +748,7 @@ input {
   outline: none;
   min-width: 150px;
   background: #fff;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
 }
 
 .search-results-divider {
@@ -1079,6 +1086,78 @@ input {
   background: #e9f8ef;
   color: #1f7a3d;
   border: 1px solid #bfe5ca;
+}
+
+.cart-inline-control {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.product-qty-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #2f2f2f;
+  border-radius: 12px;
+  padding: 6px 10px;
+}
+
+.product-qty-control__btn {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #2f2f2f;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.product-qty-control__value {
+  min-width: 24px;
+  text-align: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.cart-inline-control {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.product-qty-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #2f2f2f;
+  border-radius: 12px;
+  padding: 6px 10px;
+}
+
+.product-qty-control__btn {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #2f2f2f;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.product-qty-control__value {
+  min-width: 24px;
+  text-align: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
 }
 
 /* Responsive */

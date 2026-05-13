@@ -1,1 +1,1 @@
-//
+import '../../public/js/main'; 

@@ -40,3 +40,11 @@ Route::post('/carrito/disminuir/{product}', [CartController::class, 'decrement']
 Route::post('/carrito/eliminar/{product}', [CartController::class, 'remove'])->name('cart.remove');
 Route::post('/carrito/vaciar', [CartController::class, 'clear'])->name('cart.clear');
 Route::post('/carrito/procesar', [CartController::class, 'checkout'])->name('cart.checkout');
+
+Route::post('/ajax/carrito/agregar/{product}', [CartController::class, 'ajaxAdd'])->name('cart.ajax.add');
+Route::post('/ajax/carrito/incrementar/{product}', [CartController::class, 'ajaxIncrement'])->name('cart.ajax.increment');
+Route::post('/ajax/carrito/disminuir/{product}', [CartController::class, 'ajaxDecrement'])->name('cart.ajax.decrement');
+Route::get('/ajax/carrito/resumen', [CartController::class, 'ajaxSummary'])->name('cart.ajax.summary');
+Route::post('/ajax/carrito/eliminar/{product}', [CartController::class, 'ajaxRemove'])->name('cart.ajax.remove');
+Route::post('/ajax/carrito/vaciar', [CartController::class, 'ajaxClear'])->name('cart.ajax.clear');
+Route::get('/ajax/carrito/detalle', [CartController::class, 'ajaxDetail'])->name('cart.ajax.detail');
