@@ -10,7 +10,13 @@ class CartService
 
     public function getCart(): array
     {
-        return session()->get($this->sessionKey, ['items' => []]);
+        $cart = session()->get($this->sessionKey, ['items' => []]);
+
+        $cart = $this->syncCartWithDatabase($cart);
+
+        session()->put($this->sessionKey, $cart);
+
+        return $cart;
     }
 
     public function saveCart(array $cart): void
@@ -82,26 +88,15 @@ class CartService
         session()->forget($this->sessionKey);
     }
 
-    public function totals(float $exchangeRate = 0): array
+    public function getProductQuantity(int $productId): int
     {
         $cart = $this->getCart();
-        $items = $cart['items'];
 
-        $subtotalUsd = 0;
-
-        foreach ($items as $item) {
-            $subtotalUsd += $item['price_usd'] * $item['quantity'];
-        }
-
-        $subtotalBs = $exchangeRate > 0 ? $subtotalUsd * $exchangeRate : 0;
-
-        return [
-            'subtotal_usd' => $subtotalUsd,
-            'subtotal_bs' => $subtotalBs,
-            'items_count' => count($items),
-            'units_count' => array_sum(array_column($items, 'quantity')),
-        ];
+        return isset($cart['items'][$productId])
+            ? (int) $cart['items'][$productId]['quantity']
+            : 0;
     }
+
     public function validateStock(): array
     {
         $cart = $this->getCart();
@@ -111,7 +106,7 @@ class CartService
         foreach ($items as $item) {
             $product = Product::find($item['product_id']);
 
-            if (!$product) {
+            if (! $product) {
                 $errors[] = "El producto {$item['name']} ya no existe.";
                 continue;
             }
@@ -123,12 +118,81 @@ class CartService
 
         return $errors;
     }
-    public function getProductQuantity(int $productId): int
+
+    public function totals(float $exchangeRate = 0): array
     {
         $cart = $this->getCart();
+        $items = $cart['items'];
 
-        return isset($cart['items'][$productId])
-            ? (int) $cart['items'][$productId]['quantity']
-            : 0;
+        $subtotalUsd = 0;
+
+        foreach ($items as $item) {
+            $subtotalUsd += $item['price_usd'] * $item['quantity'];
+        }
+
+        $discountPercent = 5;
+        $discountUsd = $subtotalUsd * ($discountPercent / 100);
+        $totalUsd = $subtotalUsd - $discountUsd;
+
+        $subtotalBs = $exchangeRate > 0 ? $subtotalUsd * $exchangeRate : 0;
+        $discountBs = $exchangeRate > 0 ? $discountUsd * $exchangeRate : 0;
+        $totalBs = $exchangeRate > 0 ? $totalUsd * $exchangeRate : 0;
+
+        return [
+            'subtotal_usd' => $subtotalUsd,
+            'subtotal_bs' => $subtotalBs,
+            'discount_percent' => $discountPercent,
+            'discount_usd' => $discountUsd,
+            'discount_bs' => $discountBs,
+            'total_usd' => $totalUsd,
+            'total_bs' => $totalBs,
+            'items_count' => count($items),
+            'units_count' => array_sum(array_column($items, 'quantity')),
+        ];
+    }
+
+    protected function syncCartWithDatabase(array $cart): array
+    {
+        $items = $cart['items'] ?? [];
+
+        if (empty($items)) {
+            return ['items' => []];
+        }
+
+        $productIds = array_keys($items);
+
+        $products = Product::with('laboratory')
+            ->whereIn('id', $productIds)
+            ->get()
+            ->keyBy('id');
+
+        foreach ($items as $productId => $item) {
+            $product = $products->get($productId);
+
+            // Si ya no existe, lo sacamos del carrito
+            if (! $product) {
+                unset($items[$productId]);
+                continue;
+            }
+
+            // Refrescamos los datos por si cambiaron en el Excel
+            $items[$productId]['name'] = $product->name;
+            $items[$productId]['price_usd'] = (float) $product->price;
+            $items[$productId]['image_url'] = $product->image_url;
+            $items[$productId]['laboratory'] = $product->laboratory?->name ?? 'NO DEFINIDO';
+
+            // Opcional: si quieres capar cantidad al stock actual
+            if ((int) $items[$productId]['quantity'] > (int) $product->cantidad) {
+                $items[$productId]['quantity'] = max(1, (int) $product->cantidad);
+            }
+
+            // Si el stock quedó en 0, puedes decidir si lo dejas o lo sacas.
+            // Si quieres sacarlo automáticamente, descomenta esto:
+            // if ((int) $product->cantidad <= 0) {
+            //     unset($items[$productId]);
+            // }
+        }
+
+        return ['items' => $items];
     }
 }

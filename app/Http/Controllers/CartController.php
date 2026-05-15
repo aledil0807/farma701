@@ -131,8 +131,14 @@ class CartController extends Controller
         $message[] = 'TASA DEL DÍA';
         $message[] = 'Bs. ' . number_format($exchangeRate, 2, ',', '.');
         $message[] = '';
-        $message[] = 'TOTAL A CANCELAR';
+
+        $message[] = 'SUBTOTAL';
         $message[] = 'Bs. ' . number_format($totals['subtotal_bs'], 2, ',', '.') . ' | $ ' . number_format($totals['subtotal_usd'], 2, '.', ',');
+        $message[] = 'DESCUENTO (' . $totals['discount_percent'] . '%)';
+        $message[] = 'Bs. ' . number_format($totals['discount_bs'], 2, ',', '.') . ' | $ ' . number_format($totals['discount_usd'], 2, '.', ',');
+        $message[] = '';
+        $message[] = 'TOTAL A CANCELAR';
+        $message[] = 'Bs. ' . number_format($totals['total_bs'], 2, ',', '.') . ' | $ ' . number_format($totals['total_usd'], 2, '.', ',');
 
         $text = implode("\n", $message);
 

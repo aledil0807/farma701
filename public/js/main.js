@@ -1,28 +1,61 @@
+document.addEventListener("alpine:init", () => {
+    Alpine.store("cart", {
+        serverUnitsCount: window.cartInitial?.unitsCount || 0,
+        pendingUnitsDelta: 0,
+
+        get unitsCount() {
+            return Math.max(0, this.serverUnitsCount + this.pendingUnitsDelta);
+        },
+
+        queueDelta(delta) {
+            this.pendingUnitsDelta += Number(delta || 0);
+        },
+
+        confirm(serverCount, processedDelta) {
+            this.serverUnitsCount = Number(serverCount || 0);
+            this.pendingUnitsDelta -= Number(processedDelta || 0);
+        },
+
+        rollback(delta) {
+            this.pendingUnitsDelta -= Number(delta || 0);
+        },
+
+        forceSync(serverCount) {
+            this.serverUnitsCount = Number(serverCount || 0);
+            this.pendingUnitsDelta = 0;
+        },
+    });
+});
+
 window.cartControl = function (config) {
     return {
         productId: config.productId,
-        quantity: config.initialQuantity || 0,
         addUrl: config.addUrl,
         incrementUrl: config.incrementUrl,
         decrementUrl: config.decrementUrl,
 
+        serverQuantity: Number(config.initialQuantity || 0),
+        pendingDelta: 0,
+
         pendingOps: [],
         processing: false,
 
-        enqueue(url, optimisticChange = 0) {
-            this.quantity = Math.max(0, this.quantity + optimisticChange);
+        get quantity() {
+            return Math.max(0, this.serverQuantity + this.pendingDelta);
+        },
 
-            this.pendingOps.push({
-                url,
-                optimisticChange,
-            });
+        enqueue(url, delta) {
+            if (delta < 0 && this.quantity <= 0) return;
 
+            this.pendingDelta += delta;
+            Alpine.store("cart").queueDelta(delta);
+
+            this.pendingOps.push({ url, delta });
             this.processQueue();
         },
 
         async processQueue() {
-            if (this.processing || this.pendingOps.length === 0) return;
-
+            if (this.processing) return;
             this.processing = true;
 
             while (this.pendingOps.length > 0) {
@@ -48,27 +81,24 @@ window.cartControl = function (config) {
 
                     const data = await response.json();
 
-                    this.quantity = data.quantity ?? this.quantity;
-
-                    window.dispatchEvent(
-                        new CustomEvent("cart-updated", {
-                            detail: {
-                                unitsCount: data.totals?.units_count ?? 0,
-                            },
-                        }),
+                    this.serverQuantity = Number(
+                        data.quantity ?? this.serverQuantity,
                     );
+                    this.pendingDelta -= op.delta;
+
+                    if (data.totals?.units_count !== undefined) {
+                        Alpine.store("cart").confirm(
+                            data.totals.units_count,
+                            op.delta,
+                        );
+                    } else {
+                        Alpine.store("cart").rollback(op.delta);
+                    }
                 } catch (error) {
                     console.error(error);
 
-                    if (op.optimisticChange > 0) {
-                        this.quantity = Math.max(
-                            0,
-                            this.quantity - op.optimisticChange,
-                        );
-                    } else if (op.optimisticChange < 0) {
-                        this.quantity =
-                            this.quantity + Math.abs(op.optimisticChange);
-                    }
+                    this.pendingDelta -= op.delta;
+                    Alpine.store("cart").rollback(op.delta);
                 }
             }
 
@@ -84,20 +114,7 @@ window.cartControl = function (config) {
         },
 
         decrement() {
-            if (this.quantity <= 0) return;
             this.enqueue(this.decrementUrl, -1);
-        },
-    };
-};
-
-window.cartBadge = function (config) {
-    return {
-        unitsCount: config.initialUnits || 0,
-
-        init() {
-            window.addEventListener("cart-updated", (event) => {
-                this.unitsCount = event.detail.unitsCount ?? 0;
-            });
         },
     };
 };
@@ -106,65 +123,195 @@ window.cartPage = function (config) {
     return {
         items: config.items || [],
         totals: config.totals || {},
-        exchangeRate: config.exchangeRate || 0,
-        loading: false,
+        exchangeRate: Number(config.exchangeRate || 0),
 
-        async syncFromServer(url, options = {}) {
-            this.loading = true;
+        pendingOps: [],
+        processing: false,
+        lastServerCart: null,
+        lastServerTotals: null,
 
-            try {
-                const response = await fetch(url, {
-                    method: options.method || "POST",
-                    headers: {
-                        "X-CSRF-TOKEN": document
-                            .querySelector('meta[name="csrf-token"]')
-                            .getAttribute("content"),
-                        "X-Requested-With": "XMLHttpRequest",
-                        Accept: "application/json",
-                        "Content-Type": "application/json",
-                    },
-                    body: options.body
-                        ? JSON.stringify(options.body)
-                        : JSON.stringify({}),
-                });
+        recalculateTotals() {
+            let subtotalUsd = 0;
+            let unitsCount = 0;
 
-                if (!response.ok) {
-                    throw new Error("Error en la petición");
-                }
+            this.items.forEach((item) => {
+                subtotalUsd +=
+                    Number(item.price_usd || 0) * Number(item.quantity || 0);
+                unitsCount += Number(item.quantity || 0);
+            });
 
-                const data = await response.json();
+            const discountPercent = 5;
+            const discountUsd = subtotalUsd * (discountPercent / 100);
+            const totalUsd = subtotalUsd - discountUsd;
 
-                this.items = Object.values(data.cart?.items || {});
-                this.totals = data.totals || {};
+            this.totals.subtotal_usd = subtotalUsd;
+            this.totals.subtotal_bs = subtotalUsd * this.exchangeRate;
 
-                window.dispatchEvent(
-                    new CustomEvent("cart-updated", {
-                        detail: {
-                            unitsCount: data.totals?.units_count ?? 0,
-                        },
-                    }),
-                );
-            } catch (error) {
-                console.error(error);
-            } finally {
-                this.loading = false;
+            this.totals.discount_percent = discountPercent;
+            this.totals.discount_usd = discountUsd;
+            this.totals.discount_bs = discountUsd * this.exchangeRate;
+
+            this.totals.total_usd = totalUsd;
+            this.totals.total_bs = totalUsd * this.exchangeRate;
+
+            this.totals.units_count = unitsCount;
+            this.totals.items_count = this.items.length;
+
+            if (window.Alpine?.store("cart")) {
+                Alpine.store("cart").forceSync(unitsCount);
             }
         },
 
+        syncWithServerSnapshot() {
+            if (this.lastServerCart && this.lastServerCart.items) {
+                this.items = Object.values(this.lastServerCart.items);
+            }
+
+            if (this.lastServerTotals) {
+                this.totals = this.lastServerTotals;
+            } else {
+                this.recalculateTotals();
+            }
+
+            if (
+                this.lastServerTotals?.units_count !== undefined &&
+                window.Alpine?.store("cart")
+            ) {
+                Alpine.store("cart").forceSync(
+                    this.lastServerTotals.units_count,
+                );
+            }
+        },
+
+        findItem(productId) {
+            return this.items.find(
+                (item) => Number(item.product_id) === Number(productId),
+            );
+        },
+
+        enqueue(operation) {
+            this.pendingOps.push(operation);
+            this.processQueue();
+        },
+
+        async processQueue() {
+            if (this.processing) return;
+            this.processing = true;
+
+            while (this.pendingOps.length > 0) {
+                const op = this.pendingOps.shift();
+
+                try {
+                    const response = await fetch(op.url, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRF-TOKEN": document
+                                .querySelector('meta[name="csrf-token"]')
+                                .getAttribute("content"),
+                            "X-Requested-With": "XMLHttpRequest",
+                            Accept: "application/json",
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({}),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Error en la petición");
+                    }
+
+                    const data = await response.json();
+
+                    // Guardamos la última foto real del backend,
+                    // pero NO la aplicamos todavía si siguen quedando operaciones.
+                    this.lastServerCart = data.cart || null;
+                    this.lastServerTotals = data.totals || null;
+                } catch (error) {
+                    console.error(error);
+
+                    if (typeof op.rollback === "function") {
+                        op.rollback();
+                        this.recalculateTotals();
+                    }
+                }
+            }
+
+            // Solo cuando la cola se vacía aplicamos la foto real del backend.
+            this.syncWithServerSnapshot();
+
+            this.processing = false;
+        },
+
         increment(productId) {
-            this.syncFromServer(`/ajax/carrito/incrementar/${productId}`);
+            const item = this.findItem(productId);
+            if (!item) return;
+
+            item.quantity++;
+            this.recalculateTotals();
+
+            this.enqueue({
+                url: `/ajax/carrito/incrementar/${productId}`,
+                rollback: () => {
+                    item.quantity = Math.max(0, item.quantity - 1);
+                },
+            });
         },
 
         decrement(productId) {
-            this.syncFromServer(`/ajax/carrito/disminuir/${productId}`);
+            const item = this.findItem(productId);
+            if (!item) return;
+
+            const previousQuantity = item.quantity;
+            item.quantity--;
+
+            if (item.quantity <= 0) {
+                this.items = this.items.filter(
+                    (i) => Number(i.product_id) !== Number(productId),
+                );
+            }
+
+            this.recalculateTotals();
+
+            this.enqueue({
+                url: `/ajax/carrito/disminuir/${productId}`,
+                rollback: () => {
+                    const existing = this.findItem(productId);
+
+                    if (existing) {
+                        existing.quantity = previousQuantity;
+                    } else {
+                        item.quantity = previousQuantity;
+                        this.items.push(item);
+                    }
+                },
+            });
         },
 
         remove(productId) {
-            this.syncFromServer(`/ajax/carrito/eliminar/${productId}`);
+            const oldItems = [...this.items];
+            this.items = this.items.filter(
+                (item) => Number(item.product_id) !== Number(productId),
+            );
+            this.recalculateTotals();
+
+            this.enqueue({
+                url: `/ajax/carrito/eliminar/${productId}`,
+                rollback: () => {
+                    this.items = oldItems;
+                },
+            });
         },
 
         clear() {
-            this.syncFromServer(`/ajax/carrito/vaciar`);
+            const oldItems = [...this.items];
+            this.items = [];
+            this.recalculateTotals();
+
+            this.enqueue({
+                url: `/ajax/carrito/vaciar`,
+                rollback: () => {
+                    this.items = oldItems;
+                },
+            });
         },
 
         formatUsd(value) {
@@ -185,72 +332,7 @@ window.cartPage = function (config) {
         },
 
         lineBs(item) {
-            return this.exchangeRate > 0
-                ? this.lineUsd(item) * this.exchangeRate
-                : 0;
+            return this.lineUsd(item) * this.exchangeRate;
         },
     };
 };
-
-document.addEventListener("DOMContentLoaded", () => {
-    const countdown = document.querySelector(".countdown");
-
-    if (countdown) {
-        const deadline = new Date(countdown.dataset.deadline).getTime();
-        const daysEl = countdown.querySelector("[data-days]");
-        const hoursEl = countdown.querySelector("[data-hours]");
-        const minutesEl = countdown.querySelector("[data-minutes]");
-
-        const format = (value) => String(value).padStart(2, "0");
-
-        const updateCountdown = () => {
-            const now = Date.now();
-            const diff = deadline - now;
-
-            if (diff <= 0) {
-                daysEl.textContent = "00";
-                hoursEl.textContent = "00";
-                minutesEl.textContent = "00";
-                return;
-            }
-
-            const totalMinutes = Math.floor(diff / (1000 * 60));
-            const days = Math.floor(totalMinutes / (60 * 24));
-            const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-            const minutes = totalMinutes % 60;
-
-            daysEl.textContent = format(days);
-            hoursEl.textContent = format(hours);
-            minutesEl.textContent = format(minutes);
-        };
-
-        updateCountdown();
-        setInterval(updateCountdown, 60000);
-    }
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-    const dropdowns = document.querySelectorAll(".has-dropdown");
-
-    dropdowns.forEach((dropdown) => {
-        const button = dropdown.querySelector(".dropdown-toggle");
-
-        button.addEventListener("click", function (e) {
-            e.stopPropagation();
-
-            dropdowns.forEach((item) => {
-                if (item !== dropdown) {
-                    item.classList.remove("active");
-                }
-            });
-
-            dropdown.classList.toggle("active");
-        });
-    });
-
-    document.addEventListener("click", function () {
-        dropdowns.forEach((dropdown) => {
-            dropdown.classList.remove("active");
-        });
-    });
-});

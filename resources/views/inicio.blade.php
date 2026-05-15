@@ -49,6 +49,11 @@ $catalogBlocks = [
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script>
+    window.cartInitial = {
+      unitsCount: {{ app(\App\Services\CartService::class)->totals()['units_count'] ?? 0 }}
+    };
+  </script>
   <script src="{{ asset('js/main.js') }}"></script>
   @livewireStyles
 </head>
@@ -76,12 +81,12 @@ $catalogBlocks = [
 
         <div class="header-actions">
           <a aria-label="Usuario"><i class="fa-solid fa-user"></i></a>
-          <div
-            x-data="cartBadge({ initialUnits: {{ app(\App\Services\CartService::class)->totals()['units_count'] ?? 0 }} })">
+          <div x-data>
             <a href="{{ route('cart.index') }}" aria-label="Carrito" class="cart-link">
               <i class="fa-solid fa-cart-shopping"></i>
-              <template x-if="unitsCount > 0">
-                <span class="cart-badge" x-text="unitsCount"></span>
+
+              <template x-if="$store.cart.unitsCount > 0">
+                <span class="cart-badge" x-text="$store.cart.unitsCount"></span>
               </template>
             </a>
           </div>
@@ -94,7 +99,7 @@ $catalogBlocks = [
         <ul class="nav-menu">
           <li><a href="#">Inicio</a></li>
 
-          <li class="has-dropdown">
+          <!--<li class="has-dropdown">
             <button class="dropdown-toggle" type="button">
               Laboratorios <i class="fa-solid fa-angle-down"></i>
             </button>
@@ -134,7 +139,7 @@ $catalogBlocks = [
               <li><a href="#">Ginecología</a></li>
               <li><a href="#">Traumatología</a></li>
             </ul>
-          </li>
+          </li>-->
         </ul>
       </div>
     </nav>
@@ -155,7 +160,7 @@ $catalogBlocks = [
       </div>
     </section>
 
-    <section class="main-categories section-space">
+    <!--<section class="main-categories section-space">
       <div class="container">
         <h2 class="section-title">Categorías principales</h2>
         <div class="categories-grid">
@@ -228,7 +233,7 @@ $catalogBlocks = [
       </div>
     </section>
 
-    <!--<section class="ally-labs section-space">
+    <section class="ally-labs section-space">
       <div class="container">
         <h2 class="section-title">Laboratorios aliados</h2>
         <div class="labs-grid">

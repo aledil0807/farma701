@@ -2,35 +2,43 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Imports\ProductsImport;
+use App\Models\Category;
+use App\Models\Laboratory;
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ImportController extends Controller
 {
-    // Muestra el formulario de subida
     public function showForm()
     {
         return view('admin.import');
     }
 
-    // Procesa el archivo Excel
     public function import(Request $request)
     {
-        // Validamos que el archivo sea obligatorio y sea un formato excel
         $request->validate([
-            'file' => 'required|mimes:xlsx,xls,csv'
+            'file' => 'required|mimes:xlsx,xls,csv',
         ]);
 
-        try {
-            $file = $request->file('file');
-            
-            // Llamamos a la clase de importación
-            Excel::import(new ProductsImport, $file);
+        DB::beginTransaction();
 
-            return back()->with('success', '¡Catálogo actualizado correctamente!');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Hubo un error al importar: ' . $e->getMessage());
+        try {
+            Product::query()->delete();
+            Category::query()->delete();
+            Laboratory::query()->delete();
+
+            Excel::import(new ProductsImport, $request->file('file'));
+
+            DB::commit();
+
+            return back()->with('success', 'Catálogo reemplazado e importado correctamente.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return back()->with('error', 'Error al importar el catálogo: ' . $e->getMessage());
         }
     }
 }

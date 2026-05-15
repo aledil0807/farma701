@@ -13,6 +13,11 @@
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script>
+        window.cartInitial = {
+            unitsCount: {{ app(\App\Services\CartService::class)->totals()['units_count'] ?? 0 }}
+    };
+    </script>
     <script src="{{ asset('js/main.js') }}" defer></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
@@ -43,11 +48,12 @@
                 <div class="header-actions">
                     <a href="#" aria-label="Usuario"><i class="fa-solid fa-user"></i></a>
 
-                    <div x-data="cartBadge({ initialUnits: {{ $totals['units_count'] ?? 0 }} })">
+                    <div x-data>
                         <a href="{{ route('cart.index') }}" aria-label="Carrito" class="cart-link">
                             <i class="fa-solid fa-cart-shopping"></i>
-                            <template x-if="unitsCount > 0">
-                                <span class="cart-badge" x-text="unitsCount"></span>
+
+                            <template x-if="$store.cart.unitsCount > 0">
+                                <span class="cart-badge" x-text="$store.cart.unitsCount"></span>
                             </template>
                         </a>
                     </div>
@@ -100,10 +106,9 @@
                                     <div class="cart-item__total">
                                         <span>Total</span>
                                         <strong>
-                                            Bs. <span
-                                                x-text="formatBs((totals.subtotal_usd || 0) * exchangeRate)"></span>
+                                            Bs. <span x-text="formatBs(lineBs(item))"></span>
                                             |
-                                            $ <span x-text="formatUsd(totals.subtotal_usd)"></span>
+                                            $ <span x-text="formatUsd(lineUsd(item))"></span>
                                         </strong>
                                     </div>
 
@@ -134,11 +139,17 @@
 
                     <div class="cart-grand-total">
                         <h2>Total a cancelar</h2>
-                        <p class="cart-grand-total__discount">-5% descuento: Bs. 1.234,56 | $ 1.23</p>
+                        <p class="cart-grand-total__discount">
+                            -<span x-text="totals.discount_percent || 0"></span>% descuento:
+                            Bs. <span x-text="formatBs(totals.discount_bs)"></span>
+                            |
+                            $ <span x-text="formatUsd(totals.discount_usd)"></span>
+                        </p>
+
                         <p class="cart-grand-total__amount">
-                            Bs. <span x-text="formatBs(totals.subtotal_bs)"></span>
-                            | $
-                            <span x-text="formatUsd(totals.subtotal_usd)"></span>
+                            Bs. <span x-text="formatBs(totals.total_bs)"></span>
+                            |
+                            $ <span x-text="formatUsd(totals.total_usd)"></span>
                         </p>
                     </div>
                 </div>
