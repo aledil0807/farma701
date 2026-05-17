@@ -37,6 +37,7 @@
                 Subir e Importar
             </button>
         </form>
+        <a href="{{ route('admin.dashboard') }}" class="text-blue-500 hover:underline">Volver al panel de administración</a>
     </div>
 
 </body>

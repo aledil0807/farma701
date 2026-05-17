@@ -7,13 +7,10 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ImageImportController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\AdminAuthController;
+use App\Http\Controllers\Admin\ExchangeRateController;
 
 
-// Ruta para ver el formulario
-Route::get('/importar', [ImportController::class, 'showForm'])->name('import.form');
 
-// Ruta para procesar la subida
-Route::post('/importar', [ImportController::class, 'import'])->name('import.process');
 
 //Ruta para ver el catálogo
 Route::get('/', function () {
@@ -59,6 +56,8 @@ Route::middleware('admin.auth')->prefix('admin')->group(function () {
     Route::post('/productos/guardar', [ProductController::class, 'store'])->name('products.store');
     Route::get('/products/import-images', [ImageImportController::class, 'show'])->name('admin.products.import-images.show');
     Route::post('/products/import-images', [ImageImportController::class, 'import'])->name('admin.products.import-images');
+    Route::get('/exchange-rate', [ExchangeRateController::class, 'edit'])->name('admin.exchange-rate.edit');
+    Route::post('/exchange-rate', [ExchangeRateController::class, 'update'])->name('admin.exchange-rate.update');
 
     Route::get('/importar', [ImportController::class, 'showForm'])->name('import.form');
     Route::post('/importar', [ImportController::class, 'import'])->name('import.process');

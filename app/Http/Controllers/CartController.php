@@ -106,16 +106,16 @@ class CartController extends Controller
         ];
 
         $message = [];
-        $message[] = 'Hola, quiero procesar la siguiente compra en Farmacia 701:';
+        $message[] = '💊 Farmacia 701 - Nuevo Pedido:';
         $message[] = '';
         $message[] = 'DATOS DEL CLIENTE';
-        $message[] = 'Cédula o RIF: ' . $request->document;
-        $message[] = 'Nombre / Empresa: ' . $request->name;
-        $message[] = 'Teléfono: ' . $request->phone;
-        $message[] = 'Tipo de entrega: ' . ($deliveryLabels[$request->delivery_type] ?? $request->delivery_type);
-        $message[] = 'Método de pago: ' . ($paymentLabels[$request->payment_method] ?? $request->payment_method);
+        $message[] = '👤 Cliente: ' . $request->name;
+        $message[] = '📄 Documento: ' . $request->document;     
+        $message[] = '📱 Teléfono: ' . $request->phone;
+        $message[] = '🚚 Entrega: ' . ($deliveryLabels[$request->delivery_type] ?? $request->delivery_type);
+        $message[] = '💳 Método Pago: ' . ($paymentLabels[$request->payment_method] ?? $request->payment_method);
         $message[] = '';
-        $message[] = 'PRODUCTOS';
+        $message[] = '🛒 Productos Solicitados:';
 
         foreach ($items as $item) {
             $lineUsd = $item['price_usd'] * $item['quantity'];

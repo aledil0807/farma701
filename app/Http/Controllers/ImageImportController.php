@@ -17,7 +17,15 @@ class ImageImportController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'images.*' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'images' => ['required', 'array', 'min:1'],
+            'images.*' => ['required', 'image', /*'mimes:jpeg,png,jpg,webp',*/ 'max:5120'],
+        ], [
+            'images.required' => 'Debes seleccionar al menos una imagen.',
+            'images.array' => 'El formato de carga de imágenes no es válido.',
+            'images.min' => 'Debes seleccionar al menos una imagen.',
+            'images.*.image' => 'Uno de los archivos seleccionados no es una imagen válida.',
+            //'images.*.mimes' => 'Solo se permiten imágenes JPG, JPEG, PNG y WEBP.',
+            'images.*.max' => 'Cada imagen debe pesar máximo 5 MB.',
         ]);
 
         $files = $request->file('images');
@@ -28,7 +36,6 @@ class ImageImportController extends Controller
         foreach ($files as $file) {
             $name = $file->getClientOriginalName();
 
-            // Buscamos el producto por un identificador (puede ser id)
             $product = Product::where('image_path', $name)->first();
 
             if (!$product) {
@@ -37,7 +44,6 @@ class ImageImportController extends Controller
             }
 
             $file->storeAs('products', $name, 'public');
-
 
             $updated++;
         }

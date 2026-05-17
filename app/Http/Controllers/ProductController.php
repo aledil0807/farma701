@@ -45,6 +45,6 @@ class ProductController extends Controller
 
         Product::create($data);
 
-        return redirect()->route('import.form')->with('success', 'Producto creado manualmente con éxito.');
+        return redirect()->route('admin.dashboard')->with('success', 'Producto creado manualmente con éxito.');
     }
 }

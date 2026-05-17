@@ -12,14 +12,16 @@
         <p>Bienvenido, {{ session('admin_email') }}</p>
 
         <div style="display:flex; gap:12px; margin-top:20px;">
-            <a href="{{ route('products.create') }}" class="btn-view-more">Crear producto</a>
+            <!-- <a href="{{ route('products.create') }}" class="btn-view-more">Crear producto</a> -->
             <a href="{{ route('import.form') }}" class="btn-view-more">Importar catálogo</a>
             <a href="{{ route('admin.products.import-images.show') }}" class="btn-view-more">Importar imágenes</a>
+            <a href="{{ route('admin.exchange-rate.edit') }}" class="btn-view-more">Actualizar tasa</a>
 
             <form action="{{ route('admin.logout') }}" method="POST">
                 @csrf
                 <button type="submit" class="clear-cart-btn">Cerrar sesión</button>
             </form>
+            <a href="{{ route('home') }}">ir a catalogo</a>
         </div>
     </main>
 </body>

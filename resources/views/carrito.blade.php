@@ -11,7 +11,8 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-
+    <link rel="icon" type="image/png" href="{{ asset('assets/img/Logo.png') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <script>
         window.cartInitial = {
@@ -46,7 +47,7 @@
                 </form>
 
                 <div class="header-actions">
-                    <a href="#" aria-label="Usuario"><i class="fa-solid fa-user"></i></a>
+                    <!-- <a href="#" aria-label="Usuario"><i class="fa-solid fa-user"></i></a> -->
 
                     <div x-data>
                         <a href="{{ route('cart.index') }}" aria-label="Carrito" class="cart-link">
@@ -234,7 +235,7 @@
             <p>Av. 17 de diciembre C/C Calle Madrid, Local # 28, Séctor Negro Primero, Parroquia catedral, Frente a la
                 clínica Santa Ana, Ciudad Bolívar - Venezuela.</p>
             <p>¡Somos tus Aliados en Salud!</p>
-            <p>Farmacia 701, C.A</p>
+            <a href="{{ route('admin.login') }}" aria-label="Carrito" class="cart-link"><p>Farmacia 701, C.A</p></a>
         </div>
     </footer>
 </body>

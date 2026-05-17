@@ -49,6 +49,7 @@ $catalogBlocks = [
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="icon" type="image/png" href="{{ asset('assets/img/Logo.png') }}">
   <script>
     window.cartInitial = {
       unitsCount: {{ app(\App\Services\CartService::class)->totals()['units_count'] ?? 0 }}
@@ -80,7 +81,7 @@ $catalogBlocks = [
         </form>
 
         <div class="header-actions">
-          <a aria-label="Usuario"><i class="fa-solid fa-user"></i></a>
+
           <div x-data>
             <a href="{{ route('cart.index') }}" aria-label="Carrito" class="cart-link">
               <i class="fa-solid fa-cart-shopping"></i>
@@ -149,13 +150,13 @@ $catalogBlocks = [
     <section class="hero">
       <div class="hero__slides">
         <article class="hero__slide is-active">
-          <button class="hero__arrow hero__arrow--left" aria-label="Anterior"><i
-              class="fa-solid fa-arrow-left"></i></button>
+          <!--<button class="hero__arrow hero__arrow--left" aria-label="Anterior"><i
+              class="fa-solid fa-arrow-left"></i></button>-->
           <div class="hero__background">
             <img src="assets/img/banner-principal.jpeg" alt="Banner principal">
           </div>
-          <button class="hero__arrow hero__arrow--right" aria-label="Siguiente"><i
-              class="fa-solid fa-arrow-right"></i></button>
+          <!--<button class="hero__arrow hero__arrow--right" aria-label="Siguiente"><i
+              class="fa-solid fa-arrow-right"></i></button>-->
         </article>
       </div>
     </section>
@@ -265,7 +266,15 @@ $catalogBlocks = [
 
   </main>
 
-  <footer class="site-footer"></footer>
+  <footer class="site-footer">
+    <div class="container search-footer__content">
+      <p>Encuentra todos tus medicamentos, productos de salud, cuidado personal y suplementos deportivos.</p>
+      <p>Av. 17 de diciembre C/C Calle Madrid, Local # 28, Séctor Negro Primero, Parroquia catedral, Frente a la
+        clínica Santa Ana, Ciudad Bolívar - Venezuela.</p>
+      <p>¡Somos tus Aliados en Salud!</p>
+      <a href="{{ route('admin.login') }}" aria-label="Carrito" class="cart-link"><p>Farmacia 701, C.A</p></a>
+    </div>
+  </footer>
 
 
   @livewireScripts

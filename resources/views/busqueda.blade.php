@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/png" href="{{ asset('assets/img/Logo.png') }}">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script>
         window.cartInitial = {
@@ -46,7 +47,7 @@
                 </form>
 
                 <div class="header-actions">
-                    <a href="#" aria-label="Usuario"><i class="fa-solid fa-user"></i></a>
+                    
 
                     <div x-data>
                         <a href="{{ route('cart.index') }}" aria-label="Carrito" class="cart-link">
@@ -66,7 +67,7 @@
                 <ul class="nav-menu">
                     <li><a href="{{ route('home') }}">Inicio</a></li>
 
-                    <li class="has-dropdown">
+                    <!--<li class="has-dropdown">
                         <button class="dropdown-toggle" type="button">
                             Laboratorios <i class="fa-solid fa-angle-down"></i>
                         </button>
@@ -106,7 +107,7 @@
                             <li><a href="#">Ginecología</a></li>
                             <li><a href="#">Traumatología</a></li>
                         </ul>
-                    </li>
+                    </li>-->
                 </ul>
             </div>
         </nav>
@@ -122,7 +123,8 @@
             <p>Av. 17 de diciembre C/C Calle Madrid, Local # 28, Séctor Negro Primero, Parroquia catedral, Frente a la
                 clínica Santa Ana, Ciudad Bolívar - Venezuela.</p>
             <p>¡Somos tus Aliados en Salud!</p>
-            <p>Farmacia 701, C.A</p>
+            <a href="{{ route('admin.login') }}" aria-label="Carrito" class="cart-link"><p>Farmacia 701, C.A</p></a>
+            
         </div>
     </footer>
 

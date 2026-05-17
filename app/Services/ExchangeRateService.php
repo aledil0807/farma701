@@ -2,17 +2,26 @@
 
 namespace App\Services;
 
+use App\Models\ExchangeRate;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 class ExchangeRateService
 {
-    protected int $cacheSeconds = 900; // 15 minutos
+    protected int $cacheSeconds = 900;
 
     public function getOfficialUsdToBsRate(): float
     {
         return Cache::remember('usd_to_bs_official_rate', $this->cacheSeconds, function () {
-            // 1) Fuente principal: BCV Today
+            $manualRate = ExchangeRate::where('is_active', true)
+                ->latest('id')
+                ->first();
+
+            if ($manualRate) {
+                Cache::put('usd_to_bs_official_rate_source', 'manual', $this->cacheSeconds);
+                return (float) $manualRate->rate;
+            }
+
             $rate = $this->getRateFromBcvToday();
 
             if ($rate !== null) {
@@ -20,7 +29,6 @@ class ExchangeRateService
                 return $rate;
             }
 
-            // 2) Fuente secundaria: ve.dolarapi
             $rate = $this->getRateFromDolarApi();
 
             if ($rate !== null) {
@@ -28,7 +36,6 @@ class ExchangeRateService
                 return $rate;
             }
 
-            // 3) Último valor válido guardado previamente
             $lastKnownRate = Cache::get('usd_to_bs_official_rate_last_known');
 
             if ($lastKnownRate !== null) {
@@ -36,13 +43,8 @@ class ExchangeRateService
                 return (float) $lastKnownRate;
             }
 
-            throw new \Exception('No se pudo obtener la tasa oficial USD/VES desde ninguna fuente.');
+            throw new \Exception('No se pudo obtener la tasa oficial USD/VES.');
         });
-    }
-
-    public function getCurrentSource(): ?string
-    {
-        return Cache::get('usd_to_bs_official_rate_source');
     }
 
     public function clearRateCache(): void
@@ -54,13 +56,7 @@ class ExchangeRateService
     protected function getRateFromBcvToday(): ?float
     {
         try {
-            $response = Http::timeout(10)
-                ->acceptJson()
-                ->withHeaders([
-                    'Cache-Control' => 'no-cache',
-                    'Pragma' => 'no-cache',
-                ])
-                ->get('https://bcv.today/api/v1/rate.json');
+            $response = Http::timeout(10)->acceptJson()->get('https://bcv.today/api/v1/rate.json');
 
             if (! $response->successful()) {
                 return null;
@@ -90,13 +86,7 @@ class ExchangeRateService
     protected function getRateFromDolarApi(): ?float
     {
         try {
-            $response = Http::timeout(10)
-                ->acceptJson()
-                ->withHeaders([
-                    'Cache-Control' => 'no-cache',
-                    'Pragma' => 'no-cache',
-                ])
-                ->get('https://ve.dolarapi.com/v1/dolares/oficial');
+            $response = Http::timeout(10)->acceptJson()->get('https://ve.dolarapi.com/v1/dolares/oficial');
 
             if (! $response->successful()) {
                 return null;
