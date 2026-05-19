@@ -67,7 +67,10 @@ class CartController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
             'delivery_type' => ['required', 'string'],
+            'delivery_address' => ['nullable', 'string', 'max:500', 'required_if:delivery_type,delivery'],
             'payment_method' => ['required', 'string'],
+        ], [
+            'delivery_address.required_if' => 'Debes ingresar la dirección de envío cuando el pedido es por delivery.',
         ]);
 
         $stockErrors = $cartService->validateStock();
@@ -103,6 +106,7 @@ class CartController extends Controller
             'transferencia' => 'Transferencia',
             'efectivo_usd' => 'Efectivo USD',
             'efectivo_bs' => 'Efectivo Bs',
+            'tarjeta' => 'Tarjeta de crédito/débito',
         ];
 
         $message = [];
@@ -110,9 +114,12 @@ class CartController extends Controller
         $message[] = '';
         $message[] = 'DATOS DEL CLIENTE';
         $message[] = '👤 Cliente: ' . $request->name;
-        $message[] = '📄 Documento: ' . $request->document;     
+        $message[] = '📄 Documento: ' . $request->document;
         $message[] = '📱 Teléfono: ' . $request->phone;
         $message[] = '🚚 Entrega: ' . ($deliveryLabels[$request->delivery_type] ?? $request->delivery_type);
+        if ($request->delivery_type === 'delivery' && $request->filled('delivery_address')) {
+            $message[] = 'Dirección de envío: ' . $request->delivery_address;
+        }
         $message[] = '💳 Método Pago: ' . ($paymentLabels[$request->payment_method] ?? $request->payment_method);
         $message[] = '';
         $message[] = '🛒 Productos Solicitados:';
@@ -148,8 +155,12 @@ class CartController extends Controller
             return back()->with('stock_errors', ['No está configurado el número de WhatsApp de la empresa.'])->withInput();
         }
 
-        $whatsAppUrl = 'https://wa.me/' . $phoneNumber . '?text=' . urlencode($text);
+        $params = http_build_query([
+            'phone' => $phoneNumber,
+            'text' => $text,
+        ], '', '&', PHP_QUERY_RFC3986);
 
+        $whatsAppUrl = 'https://api.whatsapp.com/send?' . $params;
         return redirect()->away($whatsAppUrl);
     }
 

@@ -1434,6 +1434,18 @@ input {
   line-height: 1.4;
 }
 
+.cart-field__textarea {
+  width: 100%;
+  border: 0;
+  border-radius: 18px;
+  padding: 12px 14px;
+  outline: none;
+  background: #fff;
+  resize: vertical;
+  min-height: 90px;
+  font-family: inherit;
+}
+
 /* Responsive */
 @media (max-width: 1180px) {
   .catalog-products-grid {

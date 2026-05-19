@@ -184,7 +184,8 @@
                         {{ session('success') }}
                     </div>
                 @endif
-                <form action="{{ route('cart.checkout') }}" method="POST" class="cart-client__form">
+                <form action="{{ route('cart.checkout') }}" method="POST" class="cart-client__form"
+                    x-data="{ deliveryType: '{{ old('delivery_type', '') }}' }">
                     @csrf
 
                     <div class="cart-field">
@@ -200,27 +201,40 @@
                     <div class="cart-field cart-field--row">
                         <div>
                             <label for="phone">Número de teléfono</label>
-                            <input type="text" id="phone" name="phone">
+                            <input type="text" id="phone" name="phone" value="{{ old('phone') }}">
                         </div>
 
                         <div>
                             <label for="delivery_type">Tipo de entrega</label>
-                            <select id="delivery_type" name="delivery_type">
+                            <select id="delivery_type" name="delivery_type" x-model="deliveryType">
                                 <option value="">Seleccionar</option>
-                                <option value="pickup">Retiro en tienda</option>
-                                <option value="delivery">Delivery</option>
+                                <option value="pickup" {{ old('delivery_type') === 'pickup' ? 'selected' : '' }}>Retiro en
+                                    tienda</option>
+                                <option value="delivery" {{ old('delivery_type') === 'delivery' ? 'selected' : '' }}>
+                                    Delivery</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div class="cart-field" x-show="deliveryType === 'delivery'" x-transition>
+                        <label for="delivery_address">Dirección de envío</label>
+                        <textarea id="delivery_address" name="delivery_address" class="cart-field__textarea" rows="3"
+                            placeholder="Escribe la dirección completa de entrega">{{ old('delivery_address') }}</textarea>
                     </div>
 
                     <div class="cart-field">
                         <label for="payment_method">Método de pago</label>
                         <select id="payment_method" name="payment_method">
                             <option value="">Seleccionar</option>
-                            <option value="pago_movil">Pago móvil</option>
-                            <option value="transferencia">Transferencia</option>
-                            <option value="efectivo_usd">Efectivo USD</option>
-                            <option value="efectivo_bs">Efectivo Bs</option>
+                            <option value="pago_movil" {{ old('payment_method') === 'pago_movil' ? 'selected' : '' }}>Pago
+                                móvil</option>
+                            <option value="transferencia" {{ old('payment_method') === 'transferencia' ? 'selected' : '' }}>Transferencia</option>
+                            <option value="efectivo_usd" {{ old('payment_method') === 'efectivo_usd' ? 'selected' : '' }}>
+                                Efectivo USD</option>
+                            <option value="efectivo_bs" {{ old('payment_method') === 'efectivo_bs' ? 'selected' : '' }}>
+                                Efectivo Bs</option>
+                            <option value="tarjeta" {{ old('payment_method') === 'tarjeta' ? 'selected' : '' }}>Tarjeta de
+                                crédito/débito</option>
                         </select>
                     </div>
 
@@ -236,7 +250,9 @@
             <p>Av. 17 de diciembre C/C Calle Madrid, Local # 28, Séctor Negro Primero, Parroquia catedral, Frente a la
                 clínica Santa Ana, Ciudad Bolívar - Venezuela.</p>
             <p>¡Somos tus Aliados en Salud!</p>
-            <a href="{{ route('admin.login') }}" aria-label="Carrito" class="cart-link"><p>Farmacia 701, C.A</p></a>
+            <a href="{{ route('admin.login') }}" aria-label="Carrito" class="cart-link">
+                <p>Farmacia 701, C.A</p>
+            </a>
         </div>
     </footer>
 </body>
