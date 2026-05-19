@@ -57,17 +57,17 @@
                             $ {{ number_format($product->price, 2, '.', ',') }}
                         </p>
 
-                        <div x-data="cartControl({
-                                        productId: {{ $product->id }},
-                                        initialQuantity: {{ app(\App\Services\CartService::class)->getProductQuantity($product->id) }},
-                                        addUrl: '{{ route('cart.ajax.add', $product->id) }}',
-                                        incrementUrl: '{{ route('cart.ajax.increment', $product->id) }}',
-                                        decrementUrl: '{{ route('cart.ajax.decrement', $product->id) }}'
-                                    })" class="cart-inline-control">
+                        <div x-data="cartControlFromAttributes($el)" data-product-id="{{ $product->id }}"
+                            data-initial-quantity="{{ app(\App\Services\CartService::class)->getProductQuantity($product->id) }}"
+                            data-max-stock="{{ (int) ($product->cantidad ?? 0) }}"
+                            data-product-name="{{ e($product->name) }}"
+                            data-add-url="{{ route('cart.ajax.add', $product->id) }}"
+                            data-increment-url="{{ route('cart.ajax.increment', $product->id) }}"
+                            data-decrement-url="{{ route('cart.ajax.decrement', $product->id) }}"
+                            class="cart-inline-control">
                             <template x-if="quantity <= 0">
                                 <button type="button" class="product-card__button" @click="add()">
-                                    <span>Agregar al carrito</span>
-                                    
+                                    Agregar al carrito
                                 </button>
                             </template>
 

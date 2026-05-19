@@ -25,6 +25,7 @@
 </head>
 
 <body>
+    <div x-data="stockToast()" x-show="visible" x-transition class="stock-toast" x-text="message"></div>
     <header class="site-header">
         <div class="topbar">
             <div class="container topbar__content">

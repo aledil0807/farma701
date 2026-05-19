@@ -29,18 +29,25 @@ class CartService
         $cart = $this->getCart();
         $items = $cart['items'];
 
-        if (isset($items[$product->id])) {
-            $items[$product->id]['quantity'] += $quantity;
-        } else {
-            $items[$product->id] = [
-                'product_id' => $product->id,
-                'name' => $product->name,
-                'price_usd' => (float) $product->price,
-                'quantity' => $quantity,
-                'image_url' => $product->image_url,
-                'laboratory' => $product->laboratory?->name ?? 'NO DEFINIDO',
-            ];
+        $currentQuantity = isset($items[$product->id])
+            ? (int) $items[$product->id]['quantity']
+            : 0;
+
+        $newQuantity = min($currentQuantity + $quantity, (int) $product->cantidad);
+
+        if ($newQuantity <= 0) {
+            return;
         }
+
+        $items[$product->id] = [
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'price_usd' => (float) $product->price,
+            'quantity' => $newQuantity,
+            'image_url' => $product->image_url,
+            'laboratory' => $product->laboratory?->name ?? 'NO DEFINIDO',
+            'stock' => (int) $product->cantidad,
+        ];
 
         $cart['items'] = $items;
         $this->saveCart($cart);
@@ -106,7 +113,7 @@ class CartService
         foreach ($items as $item) {
             $product = Product::find($item['product_id']);
 
-            if (! $product) {
+            if (!$product) {
                 $errors[] = "El producto {$item['name']} ya no existe.";
                 continue;
             }
@@ -170,7 +177,7 @@ class CartService
             $product = $products->get($productId);
 
             // Si ya no existe, lo sacamos del carrito
-            if (! $product) {
+            if (!$product) {
                 unset($items[$productId]);
                 continue;
             }
@@ -180,7 +187,7 @@ class CartService
             $items[$productId]['price_usd'] = (float) $product->price;
             $items[$productId]['image_url'] = $product->image_url;
             $items[$productId]['laboratory'] = $product->laboratory?->name ?? 'NO DEFINIDO';
-
+            $items[$productId]['stock'] = (int) $product->cantidad;
             // Opcional: si quieres capar cantidad al stock actual
             if ((int) $items[$productId]['quantity'] > (int) $product->cantidad) {
                 $items[$productId]['quantity'] = max(1, (int) $product->cantidad);

@@ -33,6 +33,8 @@ window.cartControl = function (config) {
         addUrl: config.addUrl,
         incrementUrl: config.incrementUrl,
         decrementUrl: config.decrementUrl,
+        maxStock: Number(config.maxStock || 0),
+        productName: config.productName || "Este producto",
 
         serverQuantity: Number(config.initialQuantity || 0),
         pendingDelta: 0,
@@ -44,8 +46,28 @@ window.cartControl = function (config) {
             return Math.max(0, this.serverQuantity + this.pendingDelta);
         },
 
+        canIncrease() {
+            if (this.maxStock <= 0) return false;
+            return this.quantity < this.maxStock;
+        },
+
+        notifyStockLimit() {
+            window.dispatchEvent(
+                new CustomEvent("stock-limit-reached", {
+                    detail: {
+                        message: `No hay más stock disponible para ${this.productName}.`,
+                    },
+                }),
+            );
+        },
+
         enqueue(url, delta) {
             if (delta < 0 && this.quantity <= 0) return;
+
+            if (delta > 0 && !this.canIncrease()) {
+                this.notifyStockLimit();
+                return;
+            }
 
             this.pendingDelta += delta;
             Alpine.store("cart").queueDelta(delta);
@@ -115,6 +137,76 @@ window.cartControl = function (config) {
 
         decrement() {
             this.enqueue(this.decrementUrl, -1);
+        },
+    };
+};
+
+window.cartControlFromAttributes = function (el) {
+    try {
+        return window.cartControl({
+            productId: Number(el.dataset.productId || 0),
+            initialQuantity: Number(el.dataset.initialQuantity || 0),
+            maxStock: Number(el.dataset.maxStock || 0),
+            productName: el.dataset.productName || "Producto",
+            addUrl: el.dataset.addUrl || "",
+            incrementUrl: el.dataset.incrementUrl || "",
+            decrementUrl: el.dataset.decrementUrl || "",
+        });
+    } catch (error) {
+        console.error("Error leyendo atributos del carrito:", error);
+
+        return window.cartControl({
+            productId: 0,
+            initialQuantity: 0,
+            maxStock: 0,
+            productName: "Producto",
+            addUrl: "",
+            incrementUrl: "",
+            decrementUrl: "",
+        });
+    }
+};
+
+window.cartControlFromDataset = function (el) {
+    try {
+        const raw = el.dataset.cartConfig || "{}";
+        const config = JSON.parse(raw);
+        return window.cartControl(config);
+    } catch (error) {
+        console.error("Error parseando data-cart-config:", error);
+
+        return window.cartControl({
+            productId: 0,
+            initialQuantity: 0,
+            maxStock: 0,
+            productName: "Producto",
+            addUrl: "",
+            incrementUrl: "",
+            decrementUrl: "",
+        });
+    }
+};
+
+window.stockToast = function () {
+    return {
+        visible: false,
+        message: "",
+        timeout: null,
+
+        init() {
+            window.addEventListener("stock-limit-reached", (event) => {
+                this.message =
+                    event.detail?.message || "No hay más stock disponible.";
+                this.visible = true;
+
+                if (this.timeout) {
+                    clearTimeout(this.timeout);
+                }
+
+                this.timeout = setTimeout(() => {
+                    this.visible = false;
+                }, 2500);
+            });
         },
     };
 };
@@ -244,6 +336,19 @@ window.cartPage = function (config) {
         increment(productId) {
             const item = this.findItem(productId);
             if (!item) return;
+
+            const maxStock = Number(item.stock || 0);
+
+            if (maxStock <= 0 || Number(item.quantity) >= maxStock) {
+                window.dispatchEvent(
+                    new CustomEvent("stock-limit-reached", {
+                        detail: {
+                            message: `No hay más stock disponible para ${item.name}.`,
+                        },
+                    }),
+                );
+                return;
+            }
 
             item.quantity++;
             this.recalculateTotals();
