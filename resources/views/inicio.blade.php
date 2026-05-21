@@ -71,7 +71,7 @@ $catalogBlocks = [
     <div class="header-main">
       <div class="container header-main__content">
         <a href="#" class="brand">
-          <img src="assets/img/logo-nuevo.jpeg" alt="Farmacia 701">
+          <img src="assets/img/Logo.png" alt="Farmacia 701">
         </a>
 
         <form class="search-bar" action="{{ route('search.results') }}" method="get">

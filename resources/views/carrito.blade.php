@@ -36,7 +36,7 @@
         <div class="header-main">
             <div class="container header-main__content">
                 <a href="{{ route('home') }}" class="brand">
-                    <img src="{{ asset('assets/img/logo-nuevo.jpeg') }}" alt="Farmacia 701">
+                    <img src="{{ asset('assets/img/Logo.png') }}" alt="Farmacia 701">
                 </a>
 
                 <form class="search-bar" action="{{ route('search.results') }}" method="get">
