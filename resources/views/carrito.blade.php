@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ filemtime(public_path('css/style.css')) }}">
     <link rel="icon" type="image/png" href="{{ asset('assets/img/Logo.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -19,7 +19,7 @@
             unitsCount: {{ app(\App\Services\CartService::class)->totals()['units_count'] ?? 0 }}
     };
     </script>
-    <script src="{{ asset('js/main.js') }}" defer></script>
+    <script defer src="{{ asset('js/main.js') }}?v={{ filemtime(public_path('js/main.js')) }}" ></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
 </head>
