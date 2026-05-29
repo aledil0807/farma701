@@ -441,3 +441,107 @@ window.cartPage = function (config) {
         },
     };
 };
+
+document.addEventListener('DOMContentLoaded', function () {
+  const siteHeader = document.querySelector('.site-header');
+
+  if (!siteHeader) return;
+
+  const SCROLL_DOWN_THRESHOLD = 55;
+  const SCROLL_UP_THRESHOLD = 8;
+
+  let isScrolled = false;
+  let ticking = false;
+
+  function updateHeaderState() {
+    const y = window.scrollY || window.pageYOffset;
+
+    if (!isScrolled && y > SCROLL_DOWN_THRESHOLD) {
+      isScrolled = true;
+      siteHeader.classList.add('is-scrolled');
+    } else if (isScrolled && y < SCROLL_UP_THRESHOLD) {
+      isScrolled = false;
+      siteHeader.classList.remove('is-scrolled');
+    }
+
+    ticking = false;
+  }
+
+  function onScroll() {
+    if (!ticking) {
+      window.requestAnimationFrame(updateHeaderState);
+      ticking = true;
+    }
+  }
+
+  updateHeaderState();
+  window.addEventListener('scroll', onScroll, { passive: true });
+});
+
+window.heroCarousel = function () {
+    return {
+        current: 0,
+        total: 0,
+        interval: null,
+
+        init() {
+            this.total = this.$el.querySelectorAll('.hero-carousel__slide').length;
+
+            if (this.total > 1) {
+                this.startAutoPlay();
+            }
+        },
+
+        startAutoPlay() {
+            this.stopAutoPlay();
+
+            this.interval = setInterval(() => {
+                this.next();
+            }, 5000);
+        },
+
+        stopAutoPlay() {
+            if (this.interval) {
+                clearInterval(this.interval);
+            }
+        },
+
+        next() {
+            this.current = (this.current + 1) % this.total;
+        },
+
+        prev() {
+            this.current = (this.current - 1 + this.total) % this.total;
+        },
+
+        goTo(index) {
+            this.current = index;
+        }
+    };
+};
+
+window.labsDropdown = function () {
+    return {
+        open: false,
+        query: '',
+
+        toggle() {
+            this.open = !this.open;
+
+            if (!this.open) {
+                this.query = '';
+            }
+        },
+
+        close() {
+            this.open = false;
+            this.query = '';
+        },
+
+        matches(name) {
+            if (!this.query.trim()) return true;
+
+            return name.toLowerCase().includes(this.query.trim().toLowerCase());
+        }
+    };
+};

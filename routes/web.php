@@ -8,18 +8,51 @@ use App\Http\Controllers\ImageImportController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\Admin\ExchangeRateController;
+use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\LaboratoryController;
+
+
+use App\Models\Banner;
+use App\Models\Laboratory;
+use App\Models\Product;
 
 
 
 
 //Ruta para ver el catálogo
 Route::get('/', function () {
-    return view('inicio');
+    $banners = Banner::where('is_active', true)
+        ->orderBy('sort_order')
+        ->orderByDesc('id')
+        ->get();
+
+    $featuredLabs = [
+        'CALOX',
+        'PHARMETIQUE',
+        'ROWE',
+        'VALMORCA',
+        'FARMA',
+        'MEGALABS',
+        'DROTAFARMA',
+        'DISTRILAB',
+    ];
+
+    $allyLabs = Laboratory::whereIn('name', $featuredLabs)->get()
+        ->sortBy(function ($lab) use ($featuredLabs) {
+            return array_search($lab->name, $featuredLabs);
+        })
+        ->values();
+
+    return view('inicio', compact('banners', 'allyLabs'));
 })->name('home');
 
 Route::get('/busqueda', function () {
     return view('busqueda');
 })->name('search.results');
+
+Route::get('/laboratorios/{laboratory}', function (Laboratory $laboratory) {
+    return view('laboratories.show', compact('laboratory'));
+})->name('laboratories.show');
 
 
 
@@ -52,6 +85,10 @@ Route::middleware('admin.auth')->prefix('admin')->group(function () {
         return view('admin.dashboard');
     })->name('admin.dashboard');
 
+    Route::get('/laboratorios', [LaboratoryController::class, 'index'])->name('admin.laboratories.index');
+    Route::get('/laboratorios/{laboratory}/editar', [LaboratoryController::class, 'edit'])->name('admin.laboratories.edit');
+    Route::put('/laboratorios/{laboratory}', [LaboratoryController::class, 'update'])->name('admin.laboratories.update');
+
     Route::get('/productos/crear', [ProductController::class, 'create'])->name('products.create');
     Route::post('/productos/guardar', [ProductController::class, 'store'])->name('products.store');
     Route::get('/products/import-images', [ImageImportController::class, 'show'])->name('admin.products.import-images.show');
@@ -61,4 +98,10 @@ Route::middleware('admin.auth')->prefix('admin')->group(function () {
 
     Route::get('/importar', [ImportController::class, 'showForm'])->name('import.form');
     Route::post('/importar', [ImportController::class, 'import'])->name('import.process');
+    Route::get('/banners', [BannerController::class, 'index'])->name('admin.banners.index');
+    Route::get('/banners/create', [BannerController::class, 'create'])->name('admin.banners.create');
+    Route::post('/banners', [BannerController::class, 'store'])->name('admin.banners.store');
+    Route::get('/banners/{banner}/edit', [BannerController::class, 'edit'])->name('admin.banners.edit');
+    Route::put('/banners/{banner}', [BannerController::class, 'update'])->name('admin.banners.update');
+    Route::delete('/banners/{banner}', [BannerController::class, 'destroy'])->name('admin.banners.destroy');
 });

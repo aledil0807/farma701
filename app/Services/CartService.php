@@ -47,6 +47,7 @@ class CartService
             'image_url' => $product->image_url,
             'laboratory' => $product->laboratory?->name ?? 'NO DEFINIDO',
             'stock' => (int) $product->cantidad,
+            'is_controlled' => (bool) $product->is_controlled,
         ];
 
         $cart['items'] = $items;
@@ -188,6 +189,7 @@ class CartService
             $items[$productId]['image_url'] = $product->image_url;
             $items[$productId]['laboratory'] = $product->laboratory?->name ?? 'NO DEFINIDO';
             $items[$productId]['stock'] = (int) $product->cantidad;
+            $items[$productId]['is_controlled'] = (bool) $product->is_controlled;
             // Opcional: si quieres capar cantidad al stock actual
             if ((int) $items[$productId]['quantity'] > (int) $product->cantidad) {
                 $items[$productId]['quantity'] = max(1, (int) $product->cantidad);

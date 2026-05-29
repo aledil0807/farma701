@@ -3,10 +3,10 @@
     @if ($showSearchHeader)
         <div class="search-results-header">
             <div class="search-results-header__left">
-                <h1 class="search-results-title">
+                <h2 class="search-results-title">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     Resultados de tu búsqueda: <span>{{ $search }}</span>
-                </h1>
+                </h2>
                 <p class="search-results-count">{{ $totalProducts }} productos encontrados</p>
             </div>
         </div>
@@ -20,7 +20,9 @@
         </div>
     @else
         <div class="container">
-            <h2 class="section-title">Catálogo</h2>
+            <h2 class="section-title">
+                {{ $customTitle ?? 'Catalogo' }}
+            </h2>
         </div>
     @endif
     <div class="container">
@@ -33,6 +35,14 @@
                 @endphp
 
                 <a class="product-card">
+                    @if($product->is_controlled)
+                        <div class="product-card__controlled" tabindex="0" title="Este producto requiere récipe.">
+                            <span class="product-card__controlled-dot"></span>
+                            <div class="product-card__controlled-tooltip">
+                                Este producto requiere récipe.
+                            </div>
+                        </div>
+                    @endif
                     <div class="product-card__image">
                         <img src="{{ $product->image_url }}" alt="{{ $product->name }}">
                     </div>

@@ -17,15 +17,6 @@ $monthlyProducts = [
   ["title" => "Producto 4", "image" => "assets/img/acetaminofen.png", "link" => "#", 'price_bs' => '4.235,21', 'price_usd' => '9.95', 'brand' => 'Buka', 'available' => true],
 ];
 
-$allyLabs = [
-  ["name" => "DAC 55", "logo" => "assets/img/farmacia1.png", "link" => "#"],
-  ["name" => "Fito Sana", "logo" => "assets/img/farmacia2.png", "link" => "#"],
-  ["name" => "Calox", "logo" => "assets/img/farmacia3.png", "link" => "#"],
-  ["name" => "CCM", "logo" => "assets/img/farmacia4.png", "link" => "#"],
-  ["name" => "BioTech", "logo" => "assets/img/farmacia5.png", "link" => "#"],
-  ["name" => "ACM", "logo" => "assets/img/farmacia6.png", "link" => "#"],
-  ["name" => "Drotafarma", "logo" => "assets/img/farmacia7.png", "link" => "#"],
-];
 
 $catalogBlocks = [
   ["title" => "Catálogo 1", "image" => "assets/img/catalogo-1.jpg", "link" => "#"],
@@ -49,21 +40,22 @@ $catalogBlocks = [
   <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ filemtime(public_path('css/style.css')) }}">
 
   <script src="https://cdn.tailwindcss.com"></script>
-  
+
   <link rel="icon" type="image/png" href="{{ asset('assets/img/Logo.png') }}">
   <script>
     window.cartInitial = {
       unitsCount: {{ app(\App\Services\CartService::class)->totals()['units_count'] ?? 0 }}
     };
   </script>
-  
-  <script defer src="{{ asset('js/main.js') }}?v={{ filemtime(public_path('js/main.js')) }}" ></script>
+
+  <script defer src="{{ asset('js/main.js') }}?v={{ filemtime(public_path('js/main.js')) }}"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   @livewireStyles
 </head>
 
 <body>
   <div x-data="stockToast()" x-show="visible" x-transition class="stock-toast" x-text="message"></div>
+
   <header class="site-header">
     <div class="topbar">
       <div class="container topbar__content">
@@ -104,20 +96,30 @@ $catalogBlocks = [
         <ul class="nav-menu">
           <li><a href="#">Inicio</a></li>
 
-          <!--<li class="has-dropdown">
-            <button class="dropdown-toggle" type="button">
+          <li class="has-dropdown labs-dropdown" x-data="labsDropdown()">
+            <button class="dropdown-toggle" type="button" @click="toggle()" :aria-expanded="open.toString()">
               Laboratorios <i class="fa-solid fa-angle-down"></i>
             </button>
-            <ul class="dropdown-menu">
-              <li><a href="#">Calox</a></li>
-              <li><a href="#">Pharmetique</a></li>
-              <li><a href="#">Rowe</a></li>
-              <li><a href="#">Valmorca</a></li>
-              <li><a href="#">Farma</a></li>
-            </ul>
+
+            <div class="dropdown-menu dropdown-menu--labs" x-show="open" x-cloak @click.outside="close()" x-transition>
+              <div class="dropdown-menu__search">
+                <input type="text" class="dropdown-menu__search-input" placeholder="Buscar laboratorio..."
+                  x-model="query">
+              </div>
+
+              <ul class="dropdown-menu__list">
+                @foreach($laboratoriesNav ?? [] as $lab)
+                  <li x-show="matches(@js($lab->name))">
+                    <a href="{{ route('laboratories.show', $lab->id) }}">
+                      {{ $lab->name }}
+                    </a>
+                  </li>
+                @endforeach
+              </ul>
+            </div>
           </li>
 
-          <li class="has-dropdown">
+          <!--<li class="has-dropdown">
             <button class="dropdown-toggle" type="button">
               Categorías <i class="fa-solid fa-angle-down"></i>
             </button>
@@ -151,19 +153,48 @@ $catalogBlocks = [
   </header>
 
   <main>
-    <section class="hero">
+    @if($banners->isNotEmpty())
+      <section class="hero-carousel" x-data="heroCarousel()" x-init="init()">
+        <div class="hero-carousel__track" :style="`transform: translateX(-${current * 100}%);`">
+          @foreach($banners as $banner)
+            <div class="hero-carousel__slide">
+              @if($banner->link)
+                <a href="{{ $banner->link }}">
+                  <img src="{{ $banner->image_url }}" alt="{{ $banner->title ?: 'Banner' }}">
+                </a>
+              @else
+                <img src="{{ $banner->image_url }}" alt="{{ $banner->title ?: 'Banner' }}">
+              @endif
+            </div>
+          @endforeach
+        </div>
+
+        @if($banners->count() > 1)
+          <button type="button" class="hero-carousel__arrow hero-carousel__arrow--prev" @click="prev()">‹</button>
+          <button type="button" class="hero-carousel__arrow hero-carousel__arrow--next" @click="next()">›</button>
+
+          <div class="hero-carousel__dots">
+            @foreach($banners as $index => $banner)
+              <button type="button" class="hero-carousel__dot" :class="{ 'is-active': current === {{ $index }} }"
+                @click="goTo({{ $index }})"></button>
+            @endforeach
+          </div>
+        @endif
+      </section>
+    @endif
+    <!--<section class="hero">
       <div class="hero__slides">
         <article class="hero__slide is-active">
-          <!--<button class="hero__arrow hero__arrow--left" aria-label="Anterior"><i
-              class="fa-solid fa-arrow-left"></i></button>-->
+          <button class="hero__arrow hero__arrow--left" aria-label="Anterior"><i
+              class="fa-solid fa-arrow-left"></i></button>
           <div class="hero__background">
             <img src="assets/img/banner-principal.jpeg" alt="Banner principal">
           </div>
-          <!--<button class="hero__arrow hero__arrow--right" aria-label="Siguiente"><i
-              class="fa-solid fa-arrow-right"></i></button>-->
+          <button class="hero__arrow hero__arrow--right" aria-label="Siguiente"><i
+              class="fa-solid fa-arrow-right"></i></button>
         </article>
       </div>
-    </section>
+    </section>-->
 
     <!--<section class="main-categories section-space">
       <div class="container">
@@ -236,23 +267,24 @@ $catalogBlocks = [
           </ol>
         </aside>
       </div>
-    </section>
+    </section>-->
 
     <section class="ally-labs section-space">
       <div class="container">
         <h2 class="section-title">Laboratorios aliados</h2>
+
         <div class="labs-grid">
           @foreach($allyLabs as $lab)
-            <a class="lab-card" href="<?= htmlspecialchars($lab['link']) ?>">
+            <a class="lab-card" href="{{ route('laboratories.show', $lab->id) }}">
               <span class="lab-card__logo">
-                <img src="<?= htmlspecialchars($lab['logo']) ?>" alt="<?= htmlspecialchars($lab['name']) ?>">
+                <img src="{{ $lab->logo_url }}" alt="{{ $lab->name }}">
               </span>
-              <span class="lab-card__name"><?= htmlspecialchars($lab['name']) ?></span>
+              <span class="lab-card__name">{{ $lab->name }}</span>
             </a>
           @endforeach
         </div>
       </div>
-    </section>-->
+    </section>
 
     <!--<section class="catalog section-space section-divider-top section-divider-bottom">
       <div class="container">
@@ -276,7 +308,9 @@ $catalogBlocks = [
       <p>Av. 17 de diciembre C/C Calle Madrid, Local # 28, Séctor Negro Primero, Parroquia catedral, Frente a la
         clínica Santa Ana, Ciudad Bolívar - Venezuela.</p>
       <p>¡Somos tus Aliados en Salud!</p>
-      <a href="{{ route('admin.login') }}" aria-label="Carrito" class="cart-link"><p>Farmacia 701, C.A</p></a>
+      <a href="{{ route('admin.login') }}" aria-label="Carrito" class="cart-link">
+        <p>Farmacia 701, C.A</p>
+      </a>
     </div>
   </footer>
 

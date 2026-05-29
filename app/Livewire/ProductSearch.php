@@ -13,14 +13,20 @@ class ProductSearch extends Component
     public $exchangeRate = 0;
     public $filter = '';
     public $showSearchHeader = false;
+    public $laboratoryId = null;
+    public ?string $customTitle = null;
 
     public function mount(
         ExchangeRateService $exchangeRateService,
         $initialSearch = '',
-        $showSearchHeader = false
+        $showSearchHeader = false,
+        ?int $laboratoryId = null,
+        ?string $customTitle = null
     ) {
         $this->search = $initialSearch;
         $this->showSearchHeader = $showSearchHeader;
+        $this->laboratoryId = $laboratoryId;
+        $this->customTitle = $customTitle;
 
         try {
             $this->exchangeRate = $exchangeRateService->getOfficialUsdToBsRate();
@@ -56,7 +62,10 @@ class ProductSearch extends Component
 
         if ($this->filter === 'name_asc') {
             $query->orderBy('name', 'asc');
-        } elseif ($this->filter === 'name_desc') {
+        } elseif ($this->laboratoryId) {
+            $query->where('laboratory_id', $this->laboratoryId);
+        }
+        elseif ($this->filter === 'name_desc') {
             $query->orderBy('name', 'desc');
         } else {
             $query->orderBy('id');

@@ -16,7 +16,8 @@
             <a href="{{ route('import.form') }}" class="btn-view-more">Importar catálogo</a>
             <a href="{{ route('admin.products.import-images.show') }}" class="btn-view-more">Importar imágenes</a>
             <a href="{{ route('admin.exchange-rate.edit') }}" class="btn-view-more">Actualizar tasa</a>
-
+            <a href="{{ route('admin.banners.index') }}" class="btn-view-more">Administrar banners</a>
+            <a href="{{ route('admin.laboratories.index') }}" class="btn-view-more">Administrar Imagen de Laboratorios</a>
             <form action="{{ route('admin.logout') }}" method="POST">
                 @csrf
                 <button type="submit" class="clear-cart-btn">Cerrar sesión</button>

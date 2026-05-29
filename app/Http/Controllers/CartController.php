@@ -69,6 +69,7 @@ class CartController extends Controller
             'delivery_type' => ['required', 'string'],
             'delivery_address' => ['nullable', 'string', 'max:500', 'required_if:delivery_type,delivery'],
             'payment_method' => ['required', 'string'],
+            'attention_code' => ['nullable', 'string', 'max:100'],
         ], [
             'delivery_address.required_if' => 'Debes ingresar la dirección de envío cuando el pedido es por delivery.',
         ]);
@@ -116,6 +117,9 @@ class CartController extends Controller
         $message[] = '👤 Cliente: ' . $request->name;
         $message[] = '📄 Documento: ' . $request->document;
         $message[] = '📱 Teléfono: ' . $request->phone;
+        if ($request->filled('attention_code')) {
+            $message[] = 'Código Atención: ' . $request->attention_code;
+        }
         $message[] = '🚚 Entrega: ' . ($deliveryLabels[$request->delivery_type] ?? $request->delivery_type);
         if ($request->delivery_type === 'delivery' && $request->filled('delivery_address')) {
             $message[] = 'Dirección de envío: ' . $request->delivery_address;

@@ -19,7 +19,7 @@
             unitsCount: {{ app(\App\Services\CartService::class)->totals()['units_count'] ?? 0 }}
     };
     </script>
-    <script defer src="{{ asset('js/main.js') }}?v={{ filemtime(public_path('js/main.js')) }}" ></script>
+    <script defer src="{{ asset('js/main.js') }}?v={{ filemtime(public_path('js/main.js')) }}"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
 </head>
@@ -88,10 +88,14 @@
                                     <div class="cart-item__info">
                                         <h3 x-text="item.name"></h3>
                                         <p x-text="item.laboratory"></p>
+                                        <template x-if="item.is_controlled">
+                                            <p class="cart-item__controlled">Requiere récipe</p>
+                                        </template>
                                         <strong>
-                                            Bs. <span x-text="formatBs(lineBs(item))"></span>
+                                            Bs. <span
+                                                x-text="formatBs(Number(item.price_usd || 0) * exchangeRate)"></span>
                                             | $
-                                            <span x-text="formatUsd(lineUsd(item))"></span>
+                                            <span x-text="formatUsd(item.price_usd)"></span>
                                         </strong>
                                     </div>
 
@@ -140,15 +144,23 @@
                     </button>
 
                     <div class="cart-grand-total">
-                        <h2>Total a cancelar</h2>
+                        <h2>Total</h2>
+
+                        <p class="cart-grand-total__amount">
+                            Bs. <span x-text="formatBs(totals.subtotal_bs)"></span>
+                            |
+                            $ <span x-text="formatUsd(totals.subtotal_usd)"></span>
+                        </p>
+
                         <p class="cart-grand-total__discount">
                             -<span x-text="totals.discount_percent || 0"></span>% descuento:
                             Bs. <span x-text="formatBs(totals.discount_bs)"></span>
                             |
                             $ <span x-text="formatUsd(totals.discount_usd)"></span>
                         </p>
-
-                        <p class="cart-grand-total__amount">
+                    
+                        <p class="cart-grand-total__subtotal">
+                            Total a cancelar:
                             Bs. <span x-text="formatBs(totals.total_bs)"></span>
                             |
                             $ <span x-text="formatUsd(totals.total_usd)"></span>
@@ -236,6 +248,11 @@
                             <option value="tarjeta" {{ old('payment_method') === 'tarjeta' ? 'selected' : '' }}>Tarjeta de
                                 crédito/débito</option>
                         </select>
+                    </div>
+                    <div class="cart-field">
+                        <label for="attention_code">Código Atención</label>
+                        <input type="text" id="attention_code" name="attention_code" value="{{ old('attention_code') }}"
+                            placeholder="Opcional">
                     </div>
 
                     <button type="submit" class="checkout-btn">Procesar compra</button>
