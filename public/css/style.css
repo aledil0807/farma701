@@ -991,7 +991,7 @@ input {
 
 .cart-item__total span {
   display: block;
-  font-size: 0.72rem;
+  /*font-size: 0.72rem;*/
   font-weight: 700;
   color: #6a6a6a;
   text-transform: uppercase;

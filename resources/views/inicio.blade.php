@@ -37,7 +37,7 @@ $catalogBlocks = [
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ filemtime(public_path('css/style.css')) }}">
+  <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=1.0.2">
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -48,7 +48,7 @@ $catalogBlocks = [
     };
   </script>
 
-  <script defer src="{{ asset('js/main.js') }}?v={{ filemtime(public_path('js/main.js')) }}"></script>
+  <script defer src="{{ asset('js/main.js') }}?v=1.0.2"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   @livewireStyles
 </head>
