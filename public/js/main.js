@@ -545,3 +545,34 @@ window.labsDropdown = function () {
         }
     };
 };
+document.addEventListener('DOMContentLoaded', function () {
+  const navMenu = document.getElementById('mainNavMenu');
+  const hoverLine = document.getElementById('navHoverLine');
+
+  if (!navMenu || !hoverLine) return;
+
+  const triggers = navMenu.querySelectorAll(':scope > li > a, :scope > li > button');
+
+  function moveLine(el) {
+    const menuRect = navMenu.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+
+    const left = elRect.left - menuRect.left;
+    const width = elRect.width;
+
+    hoverLine.style.width = `${width}px`;
+    hoverLine.style.transform = `translateX(${left}px)`;
+    hoverLine.style.opacity = '1';
+  }
+
+  function hideLine() {
+    hoverLine.style.opacity = '0';
+  }
+
+  triggers.forEach((el) => {
+    el.addEventListener('mouseenter', () => moveLine(el));
+    el.addEventListener('focus', () => moveLine(el));
+  });
+
+  navMenu.addEventListener('mouseleave', hideLine);
+});

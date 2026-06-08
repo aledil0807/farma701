@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin | Farmacia 701</title>
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=1.0.2">
-    <script src="{{ asset('js/main.js') }}?v=1.0.2"></script>
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ $assetVersion }}">
+    <script src="{{ asset('js/main.js') }}?v={{ $assetVersion }}"></script>
     @livewireStyles
 </head>
 <body>

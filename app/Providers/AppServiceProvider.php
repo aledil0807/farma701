@@ -15,6 +15,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        View::share('assetVersion', env('ASSET_VERSION', '1.0.0'));
+
         View::composer(
             ['inicio', 'busqueda', 'carrito', 'laboratories.show'],
             function ($view) {

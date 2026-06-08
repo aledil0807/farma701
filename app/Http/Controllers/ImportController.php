@@ -28,7 +28,7 @@ class ImportController extends Controller
         try {
             Product::query()->delete();
             Category::query()->delete();
-            Laboratory::query()->delete();
+            
 
             Excel::import(new ProductsImport, $request->file('file'));
 

@@ -37,7 +37,7 @@ $catalogBlocks = [
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=1.0.2">
+  <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ $assetVersion }}">
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -48,7 +48,7 @@ $catalogBlocks = [
     };
   </script>
 
-  <script defer src="{{ asset('js/main.js') }}?v=1.0.2"></script>
+  <script defer src="{{ asset('js/main.js') }}?v={{ $assetVersion }}"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   @livewireStyles
 </head>
@@ -93,9 +93,9 @@ $catalogBlocks = [
 
     <nav class="main-nav">
       <div class="container">
-        <ul class="nav-menu">
+        <ul class="nav-menu" id="mainNavMenu">
           <li><a href="#">Inicio</a></li>
-
+          <div class="nav-divider"></div>
           <li class="has-dropdown labs-dropdown" x-data="labsDropdown()">
             <button class="dropdown-toggle" type="button" @click="toggle()" :aria-expanded="open.toString()">
               Laboratorios <i class="fa-solid fa-angle-down"></i>
@@ -147,6 +147,7 @@ $catalogBlocks = [
               <li><a href="#">Traumatología</a></li>
             </ul>
           </li>-->
+          <span class="nav-hover-line" id="navHoverLine"></span>
         </ul>
       </div>
     </nav>
@@ -273,7 +274,7 @@ $catalogBlocks = [
       <div class="container">
         <h2 class="section-title">Laboratorios aliados</h2>
 
-        <div class="labs-grid">
+        <div class="labs-grid labs-carousel-mobile">
           @foreach($allyLabs as $lab)
             <a class="lab-card" href="{{ route('laboratories.show', $lab->id) }}">
               <span class="lab-card__logo">

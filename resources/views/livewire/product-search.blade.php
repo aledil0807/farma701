@@ -25,7 +25,7 @@
             </h2>
         </div>
     @endif
-    <div class="container">
+    <div class="container-reduced">
         <div class="search-results-divider"></div>
 
         <div class="catalog-products-grid">

@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=1.0.2">
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ $assetVersion }}">
     <link rel="icon" type="image/png" href="{{ asset('assets/img/Logo.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -19,7 +19,7 @@
             unitsCount: {{ app(\App\Services\CartService::class)->totals()['units_count'] ?? 0 }}
     };
     </script>
-    <script defer src="{{ asset('js/main.js') }}?v=1.0.2"></script>
+    <script defer src="{{ asset('js/main.js') }}?v={{ $assetVersion }}"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
 </head>
@@ -247,6 +247,7 @@
                                 Efectivo Bs</option>
                             <option value="tarjeta" {{ old('payment_method') === 'tarjeta' ? 'selected' : '' }}>Tarjeta de
                                 crédito/débito</option>
+                            <option value="zelle" {{ old('payment_method') === 'zelle' ? 'selected' : '' }}>Zelle</option>
                         </select>
                     </div>
                     <div class="cart-field">
