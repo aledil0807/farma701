@@ -36,6 +36,15 @@ Route::get('/', function () {
         'DROTAFARMA',
         'DISTRILAB',
     ];
+    $featuredProductIds = [101, 205, 330, 411, 522];
+
+    $featuredProducts = Product::with(['category', 'laboratory'])
+        ->whereIn('id', $featuredProductIds)
+        ->get()
+        ->sortBy(function ($product) use ($featuredProductIds) {
+            return array_search($product->id, $featuredProductIds);
+        })
+        ->values();
 
     $allyLabs = Laboratory::whereIn('name', $featuredLabs)->get()
         ->sortBy(function ($lab) use ($featuredLabs) {
@@ -43,7 +52,7 @@ Route::get('/', function () {
         })
         ->values();
 
-    return view('inicio', compact('banners', 'allyLabs'));
+    return view('inicio', compact('banners', 'allyLabs','featuredProducts'));
 })->name('home');
 
 Route::get('/busqueda', function () {

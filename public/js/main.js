@@ -449,11 +449,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const SCROLL_DOWN_THRESHOLD = 55;
   const SCROLL_UP_THRESHOLD = 8;
+  const DESKTOP_BREAKPOINT = 769;
 
   let isScrolled = false;
   let ticking = false;
 
+  function isDesktop() {
+    return window.innerWidth >= DESKTOP_BREAKPOINT;
+  }
+
+  function resetHeaderState() {
+    isScrolled = false;
+    siteHeader.classList.remove('is-scrolled');
+  }
+
   function updateHeaderState() {
+    if (!isDesktop()) {
+      resetHeaderState();
+      ticking = false;
+      return;
+    }
+
     const y = window.scrollY || window.pageYOffset;
 
     if (!isScrolled && y > SCROLL_DOWN_THRESHOLD) {
@@ -474,8 +490,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function onResize() {
+    if (!isDesktop()) {
+      resetHeaderState();
+    } else {
+      updateHeaderState();
+    }
+  }
+
   updateHeaderState();
+
   window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onResize);
 });
 
 window.heroCarousel = function () {
@@ -575,4 +601,226 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   navMenu.addEventListener('mouseleave', hideLine);
+});
+
+window.labsMarquee = function () {
+    return {
+        position: 0,
+        speed: 0.35,
+        animationFrame: null,
+        dragging: false,
+        startX: 0,
+        startPosition: 0,
+        firstSetWidth: 0,
+        pausedUntil: 0,
+
+        init() {
+            if (window.innerWidth > 768) return;
+
+            this.$nextTick(() => {
+                this.measure();
+                this.bindDrag();
+                this.start();
+                window.addEventListener('resize', this.handleResize.bind(this));
+            });
+        },
+
+        measure() {
+            const track = this.$refs.track;
+            if (!track) return;
+
+            const items = Array.from(track.children);
+            const half = Math.floor(items.length / 2);
+
+            if (half === 0) return;
+
+            let width = 0;
+
+            for (let i = 0; i < half; i++) {
+                width += items[i].offsetWidth;
+            }
+
+            width += (half - 1) * 14; // gap
+
+            this.firstSetWidth = width;
+        },
+
+        handleResize() {
+            if (window.innerWidth > 768) {
+                this.stop();
+                this.$refs.track.style.transform = '';
+                return;
+            }
+
+            this.measure();
+            if (!this.animationFrame) {
+                this.start();
+            }
+        },
+
+        start() {
+            this.stop();
+
+            const loop = () => {
+                if (window.innerWidth > 768) return;
+
+                const now = performance.now();
+
+                if (!this.dragging && now > this.pausedUntil) {
+                    this.position -= this.speed;
+
+                    if (Math.abs(this.position) >= this.firstSetWidth) {
+                        this.position += this.firstSetWidth;
+                    }
+
+                    this.applyTransform();
+                }
+
+                this.animationFrame = requestAnimationFrame(loop);
+            };
+
+            this.animationFrame = requestAnimationFrame(loop);
+        },
+
+        stop() {
+            if (this.animationFrame) {
+                cancelAnimationFrame(this.animationFrame);
+                this.animationFrame = null;
+            }
+        },
+
+        applyTransform() {
+            this.$refs.track.style.transform = `translateX(${this.position}px)`;
+        },
+
+        bindDrag() {
+            const marquee = this.$refs.marquee;
+
+            const startDrag = (clientX) => {
+                this.dragging = true;
+                this.startX = clientX;
+                this.startPosition = this.position;
+                this.pausedUntil = performance.now();
+                marquee.classList.add('is-dragging');
+            };
+
+            const moveDrag = (clientX) => {
+                if (!this.dragging) return;
+
+                const delta = clientX - this.startX;
+                this.position = this.startPosition + delta;
+
+                while (this.position > 0) {
+                    this.position -= this.firstSetWidth;
+                }
+
+                while (Math.abs(this.position) >= this.firstSetWidth) {
+                    this.position += this.firstSetWidth;
+                }
+
+                this.applyTransform();
+            };
+
+            const endDrag = () => {
+                if (!this.dragging) return;
+
+                this.dragging = false;
+                this.pausedUntil = performance.now();
+                marquee.classList.remove('is-dragging');
+            };
+
+            marquee.addEventListener('mousedown', (e) => {
+                startDrag(e.clientX);
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                moveDrag(e.clientX);
+            });
+
+            window.addEventListener('mouseup', endDrag);
+
+            marquee.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) return;
+                startDrag(e.touches[0].clientX);
+            }, { passive: true });
+
+            marquee.addEventListener('touchmove', (e) => {
+                if (e.touches.length !== 1) return;
+                moveDrag(e.touches[0].clientX);
+            }, { passive: true });
+
+            marquee.addEventListener('touchend', endDrag);
+            marquee.addEventListener('touchcancel', endDrag);
+        }
+    };
+};
+
+document.addEventListener('DOMContentLoaded', function () {
+    const checkoutForm = document.getElementById('checkoutForm');
+
+    if (!checkoutForm) return;
+
+    checkoutForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const submitButton = checkoutForm.querySelector('button[type="submit"]');
+        const originalText = submitButton ? submitButton.innerHTML : '';
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.innerHTML = 'Procesando...';
+        }
+
+        try {
+            const formData = new FormData(checkoutForm);
+
+            const response = await fetch(checkoutForm.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                },
+                body: formData,
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                if (data.errors) {
+                    let messages = [];
+
+                    Object.values(data.errors).forEach((group) => {
+                        messages = messages.concat(group);
+                    });
+
+                    alert(messages.join('\n'));
+                } else if (data.message) {
+                    alert(data.message);
+                } else {
+                    alert('No se pudo procesar la compra.');
+                }
+
+                return;
+            }
+
+            if (data.success && data.whatsapp_url) {
+                window.open(data.whatsapp_url, '_blank');
+
+                if (window.Alpine?.store('cart')) {
+                    Alpine.store('cart').forceSync(0);
+                }
+
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Ocurrió un error al procesar la compra.');
+        } finally {
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalText;
+            }
+        }
+    });
 });

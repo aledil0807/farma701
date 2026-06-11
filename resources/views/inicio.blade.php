@@ -56,102 +56,7 @@ $catalogBlocks = [
 <body>
   <div x-data="stockToast()" x-show="visible" x-transition class="stock-toast" x-text="message"></div>
 
-  <header class="site-header">
-    <div class="topbar">
-      <div class="container topbar__content">
-        <p>Farmacia 701 ¡Somos tus aliados en salud!</p>
-      </div>
-    </div>
-
-    <div class="header-main">
-      <div class="container header-main__content">
-        <a href="#" class="brand">
-          <img src="assets/img/Logo.png" alt="Farmacia 701">
-        </a>
-
-        <form class="search-bar" action="{{ route('search.results') }}" method="get">
-          <input type="text" name="q" value="{{ request('q') }}" placeholder="Buscar productos, marcas o categorías">
-          <button type="submit" aria-label="Buscar">
-            <i class="fa-solid fa-magnifying-glass"></i>
-          </button>
-        </form>
-
-        <div class="header-actions">
-
-          <div x-data>
-            <a href="{{ route('cart.index') }}" aria-label="Carrito" class="cart-link">
-              <i class="fa-solid fa-cart-shopping"></i>
-
-              <template x-if="$store.cart.unitsCount > 0">
-                <span class="cart-badge" x-text="$store.cart.unitsCount"></span>
-              </template>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <nav class="main-nav">
-      <div class="container">
-        <ul class="nav-menu" id="mainNavMenu">
-          <li><a href="#">Inicio</a></li>
-          <div class="nav-divider"></div>
-          <li class="has-dropdown labs-dropdown" x-data="labsDropdown()">
-            <button class="dropdown-toggle" type="button" @click="toggle()" :aria-expanded="open.toString()">
-              Laboratorios <i class="fa-solid fa-angle-down"></i>
-            </button>
-
-            <div class="dropdown-menu dropdown-menu--labs" x-show="open" x-cloak @click.outside="close()" x-transition>
-              <div class="dropdown-menu__search">
-                <input type="text" class="dropdown-menu__search-input" placeholder="Buscar laboratorio..."
-                  x-model="query">
-              </div>
-
-              <ul class="dropdown-menu__list">
-                @foreach($laboratoriesNav ?? [] as $lab)
-                  <li x-show="matches(@js($lab->name))">
-                    <a href="{{ route('laboratories.show', $lab->id) }}">
-                      {{ $lab->name }}
-                    </a>
-                  </li>
-                @endforeach
-              </ul>
-            </div>
-          </li>
-
-          <!--<li class="has-dropdown">
-            <button class="dropdown-toggle" type="button">
-              Categorías <i class="fa-solid fa-angle-down"></i>
-            </button>
-            <ul class="dropdown-menu">
-              <li><a href="#">Salud y Medicamentos</a></li>
-              <li><a href="#">Cuidado Personal</a></li>
-              <li><a href="#">Nutrición</a></li>
-              <li><a href="#">Suministros Médicos</a></li>
-              <li><a href="#">Hogar</a></li>
-              <li><a href="#">Equipos Médicos</a></li>
-              <li><a href="#">Línea Infantil</a></li>
-              <li><a href="#">Alimentos y Bebidas</a></li>
-            </ul>
-          </li>
-
-          <li class="has-dropdown">
-            <button class="dropdown-toggle" type="button">
-              Directorio Médico <i class="fa-solid fa-angle-down"></i>
-            </button>
-            <ul class="dropdown-menu">
-              <li><a href="#">Medicina General</a></li>
-              <li><a href="#">Pediatría</a></li>
-              <li><a href="#">Cardiología</a></li>
-              <li><a href="#">Ginecología</a></li>
-              <li><a href="#">Traumatología</a></li>
-            </ul>
-          </li>-->
-          <span class="nav-hover-line" id="navHoverLine"></span>
-        </ul>
-      </div>
-    </nav>
-  </header>
+  <x-header />
 
   <main>
     @if($banners->isNotEmpty())
@@ -212,77 +117,132 @@ $catalogBlocks = [
           @endforeach
         </div>
       </div>
-    </section>
+    </section>-->
 
-    <section class="featured-and-steps">
-      <div class="container featured-and-steps__grid">
-        <div class="featured-products card-panel">
-          <div class="featured-products__head">
-            <div class="featured-products__title-wrap">
-              <span class="discount-badge"><i class="fa-solid fa-percent"></i></span>
-              <h2>Productos del mes</h2>
+    @if(isset($featuredProducts) && $featuredProducts->isNotEmpty())
+      <section class="featured-month section-space">
+        <div class="container-reduced">
+          <div class="featured-products featured-products--carousel">
+            <div class="featured-products__head">
+              <div class="featured-products__title-wrap">
+                <span class="discount-badge">
+                  <i class="fa-solid fa-percent"></i>
+                </span>
+                <h2>Productos del mes</h2>
+              </div>
+
+              <div class="featured-carousel__controls">
+                <button type="button" class="featured-carousel__btn" @click="$dispatch('featured-prev')">
+                  <i class="fa-solid fa-angle-left"></i>
+                </button>
+
+                <button type="button" class="featured-carousel__btn" @click="$dispatch('featured-next')">
+                  <i class="fa-solid fa-angle-right"></i>
+                </button>
+              </div>
             </div>
-            <div class="countdown" data-deadline="2026-12-31T23:59:59">
-              <div><strong data-days>00</strong><span>Días</span></div>
-              <div><strong data-hours>00</strong><span>Horas</span></div>
-              <div><strong data-minutes>00</strong><span>Minutos</span></div>
+
+            <div class="featured-carousel" x-data="featuredCarousel({ total: {{ $featuredProducts->count() }} })"
+              x-init="init()" @featured-prev.window="prev()" @featured-next.window="next()">
+              <div class="featured-carousel__stage">
+                @foreach($featuredProducts as $index => $product)
+                  <article class="product-card featured-carousel__card" :class="cardClass({{ $index }})"
+                    @click="goTo({{ $index }})">
+                    @if($product->is_controlled)
+                      <div class="product-card__controlled" tabindex="0" title="Este producto requiere récipe.">
+                        <span class="product-card__controlled-dot"></span>
+                        <div class="product-card__controlled-tooltip">
+                          Este producto requiere récipe.
+                        </div>
+                      </div>
+                    @endif
+
+                    <div class="product-card__image">
+                      <img src="{{ $product->image_url }}" alt="{{ $product->name }}">
+                    </div>
+
+                    <div class="product-card__body">
+                      <div class="product-card__title-wrap">
+                        <h3 class="product-card__title">{{ $product->name }}</h3>
+                      </div>
+
+                      <p class="product-card__brand">
+                        {{ $product->laboratory?->name }}
+                      </p>
+
+                      <span class="product-card__status {{ $product->cantidad > 0 ? 'is-available' : 'is-unavailable' }}">
+                        {{ $product->cantidad > 0 ? 'Disponible' : 'Agotado' }}
+                      </span>
+
+                      <p class="product-card__price">
+                        $ {{ number_format($product->price, 2, '.', ',') }}
+                      </p>
+
+                      <div class="cart-inline-control" x-data="cartControl({
+                                            productId: {{ $product->id }},
+                                            initialQuantity: 0,
+                                            maxStock: {{ (int) $product->cantidad }},
+                                            productName: @js($product->name),
+                                            addUrl: '{{ route('cart.add', $product) }}',
+                                            incrementUrl: '{{ route('cart.increment', $product) }}',
+                                            decrementUrl: '{{ route('cart.decrement', $product) }}'
+                                        })">
+                        <template x-if="quantity === 0">
+                          <button type="button" class="product-card__button" @click.stop="add()">
+                            Agregar al carrito
+                          </button>
+                        </template>
+
+                        <template x-if="quantity > 0">
+                          <div class="product-qty-control">
+                            <button type="button" class="product-qty-control__btn" @click.stop="decrement()">−</button>
+                            <span class="product-qty-control__value" x-text="quantity"></span>
+                            <button type="button" class="product-qty-control__btn" @click.stop="increment()">+</button>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </article>
+                @endforeach
+              </div>
+
+              <div class="featured-carousel__dots">
+                @foreach($featuredProducts as $index => $product)
+                  <button type="button" class="featured-carousel__dot" :class="{ 'is-active': current === {{ $index }} }"
+                    @click="goTo({{ $index }})">
+                  </button>
+                @endforeach
+              </div>
             </div>
-          </div>
-
-          <div class="products-grid">
-            @foreach($monthlyProducts as $product)
-              <a class="product-card" href="<?= htmlspecialchars($product['link']) ?>">
-                <div class="product-card__image">
-                  <img src="<?= htmlspecialchars($product['image']) ?>" alt="<?= htmlspecialchars($product['title']) ?>">
-                </div>
-
-                <div class="product-card__body">
-                  <div class="product-card__title-wrap">
-                    <h3 class="product-card__title"><?= htmlspecialchars($product['title']) ?></h3>
-                  </div>
-
-                  <p class="product-card__brand"><?= htmlspecialchars($product['brand']) ?></p>
-
-                  <span
-                    class="product-card__status <?= !empty($product['available']) ? 'is-available' : 'is-unavailable' ?>">
-                    <?= !empty($product['available']) ? '¡Disponible!' : 'No disponible' ?>
-                  </span>
-
-                  <p class="product-card__price">
-                    Bs. <?= htmlspecialchars($product['price_bs']) ?> | $ <?= htmlspecialchars($product['price_usd']) ?>
-                  </p>
-
-                  <span class="product-card__button">Agregar al carrito</span>
-                </div>
-              </a>
-            @endforeach
           </div>
         </div>
-
-        <aside class="steps-card">
-          <h2>¿Cómo hacer<br>tu pedido?</h2>
-          <ol>
-            <li>Selecciona tus productos</li>
-            <li>Completa tus datos</li>
-            <li>Confirma tu compra</li>
-          </ol>
-        </aside>
-      </div>
-    </section>-->
+      </section>
+    @endif
 
     <section class="ally-labs section-space">
       <div class="container">
         <h2 class="section-title">Laboratorios aliados</h2>
 
-        <div class="labs-grid labs-carousel-mobile">
-          @foreach($allyLabs as $lab)
-            <a class="lab-card" href="{{ route('laboratories.show', $lab->id) }}">
-              <span class="lab-card__logo">
-                <img src="{{ $lab->logo_url }}" alt="{{ $lab->name }}">
-              </span>
-              <span class="lab-card__name">{{ $lab->name }}</span>
-            </a>
-          @endforeach
+        <div class="labs-marquee" x-data="labsMarquee()" x-init="init()" x-ref="marquee">
+          <div class="labs-marquee__track" x-ref="track">
+            @foreach($allyLabs as $lab)
+              <a class="lab-card" href="{{ route('laboratories.show', $lab->id) }}">
+                <span class="lab-card__logo">
+                  <img src="{{ $lab->logo_url }}" alt="{{ $lab->name }}">
+                </span>
+                <span class="lab-card__name">{{ $lab->name }}</span>
+              </a>
+            @endforeach
+
+            @foreach($allyLabs as $lab)
+              <a class="lab-card" href="{{ route('laboratories.show', $lab->id) }}">
+                <span class="lab-card__logo">
+                  <img src="{{ $lab->logo_url }}" alt="{{ $lab->name }}">
+                </span>
+                <span class="lab-card__name">{{ $lab->name }}</span>
+              </a>
+            @endforeach
+          </div>
         </div>
       </div>
     </section>

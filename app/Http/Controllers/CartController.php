@@ -66,17 +66,37 @@ class CartController extends Controller
             'document' => ['required', 'string', 'max:50'],
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:50'],
+            'attention_code' => ['nullable', 'string', 'max:100'],
             'delivery_type' => ['required', 'string'],
             'delivery_address' => ['nullable', 'string', 'max:500', 'required_if:delivery_type,delivery'],
             'payment_method' => ['required', 'string'],
-            'attention_code' => ['nullable', 'string', 'max:100'],
         ], [
+            'document.required' => 'Debes ingresar el documento.',
+            'name.required' => 'Debes ingresar el nombre.',
+            'phone.required' => 'Debes ingresar el teléfono.',
+            'delivery_type.required' => 'Debes seleccionar el tipo de entrega.',
             'delivery_address.required_if' => 'Debes ingresar la dirección de envío cuando el pedido es por delivery.',
+            'payment_method.required' => 'Debes seleccionar el método de pago.',
+        ], [
+            'document' => 'documento',
+            'name' => 'nombre',
+            'phone' => 'teléfono',
+            'attention_code' => 'código de atención',
+            'delivery_type' => 'tipo de entrega',
+            'delivery_address' => 'dirección de envío',
+            'payment_method' => 'método de pago',
         ]);
 
         $stockErrors = $cartService->validateStock();
 
         if (!empty($stockErrors)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => implode("\n", $stockErrors),
+                    'errors' => ['stock' => $stockErrors],
+                ], 422);
+            }
+
             return back()->with('stock_errors', $stockErrors)->withInput();
         }
 
@@ -84,6 +104,13 @@ class CartController extends Controller
         $items = $cart['items'];
 
         if (empty($items)) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Tu carrito está vacío.',
+                    'errors' => ['cart' => ['Tu carrito está vacío.']],
+                ], 422);
+            }
+
             return back()->with('stock_errors', ['Tu carrito está vacío.'])->withInput();
         }
 
@@ -156,6 +183,13 @@ class CartController extends Controller
         $phoneNumber = config('services.whatsapp.number');
 
         if (!$phoneNumber) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'No está configurado el número de WhatsApp de la empresa.',
+                    'errors' => ['whatsapp' => ['No está configurado el número de WhatsApp de la empresa.']],
+                ], 422);
+            }
+
             return back()->with('stock_errors', ['No está configurado el número de WhatsApp de la empresa.'])->withInput();
         }
 
@@ -165,6 +199,15 @@ class CartController extends Controller
         ], '', '&', PHP_QUERY_RFC3986);
 
         $whatsAppUrl = 'https://api.whatsapp.com/send?' . $params;
+
+        $cartService->clear();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'whatsapp_url' => $whatsAppUrl,
+            ]);
+        }
         return redirect()->away($whatsAppUrl);
     }
 

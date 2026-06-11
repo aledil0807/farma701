@@ -26,43 +26,7 @@
 
 <body>
     <div x-data="stockToast()" x-show="visible" x-transition class="stock-toast" x-text="message"></div>
-    <header class="site-header">
-        <div class="topbar">
-            <div class="container topbar__content">
-                <p>Farmacia 701 ¡Somos tus aliados en salud!</p>
-            </div>
-        </div>
-
-        <div class="header-main">
-            <div class="container header-main__content">
-                <a href="{{ route('home') }}" class="brand">
-                    <img src="{{ asset('assets/img/Logo.png') }}" alt="Farmacia 701">
-                </a>
-
-                <form class="search-bar" action="{{ route('search.results') }}" method="get">
-                    <input type="text" name="q" value="{{ request('q') }}"
-                        placeholder="Buscar productos, marcas o categorías">
-                    <button type="submit" aria-label="Buscar">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </button>
-                </form>
-
-                <div class="header-actions">
-                    <!-- <a href="#" aria-label="Usuario"><i class="fa-solid fa-user"></i></a> -->
-
-                    <div x-data>
-                        <a href="{{ route('cart.index') }}" aria-label="Carrito" class="cart-link">
-                            <i class="fa-solid fa-cart-shopping"></i>
-
-                            <template x-if="$store.cart.unitsCount > 0">
-                                <span class="cart-badge" x-text="$store.cart.unitsCount"></span>
-                            </template>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
+    <x-header />
 
     <main class="cart-page">
         <div class="cart-page__grid">
@@ -196,7 +160,7 @@
                         {{ session('success') }}
                     </div>
                 @endif
-                <form action="{{ route('cart.checkout') }}" method="POST" class="cart-client__form"
+                <form action="{{ route('cart.checkout') }}" method="POST" target="_blank" class="cart-client__form" id="checkoutForm"
                     x-data="{ deliveryType: '{{ old('delivery_type', '') }}' }">
                     @csrf
 
