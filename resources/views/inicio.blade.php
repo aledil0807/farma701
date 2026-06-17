@@ -10,13 +10,6 @@ $mainCategories = [
   ["key" => "alimentos-bebidas", "label" => "Alimentos y\nBebidas", "icon" => "assets/img/alimentos-y-bebidas.png", "link" => "#"],
 ];
 
-$monthlyProducts = [
-  ["title" => "Acetaminofen 650mg cap x 10", "image" => "assets/img/acetaminofen.png", "link" => "#", 'price_bs' => '4.235,21', 'price_usd' => '9.95', 'brand' => 'CALOX', 'available' => true],
-  ["title" => "Producto 2", "image" => "assets/img/acetaminofen.png", "link" => "#", 'price_bs' => '4.235,21', 'price_usd' => '9.95', 'brand' => 'Buka', 'available' => true],
-  ["title" => "Producto 3", "image" => "assets/img/acetaminofen.png", "link" => "#", 'price_bs' => '4.235,21', 'price_usd' => '9.95', 'brand' => 'Buka', 'available' => true],
-  ["title" => "Producto 4", "image" => "assets/img/acetaminofen.png", "link" => "#", 'price_bs' => '4.235,21', 'price_usd' => '9.95', 'brand' => 'Buka', 'available' => true],
-];
-
 
 $catalogBlocks = [
   ["title" => "Catálogo 1", "image" => "assets/img/catalogo-1.jpg", "link" => "#"],
@@ -88,6 +81,24 @@ $catalogBlocks = [
         @endif
       </section>
     @endif
+    <section class="delivery-strip">
+      <div class="container">
+        <div class="delivery-strip__content">
+          <div class="delivery-strip__left">
+            <span>Delivery gratis</span>
+          </div>
+
+          <div class="delivery-strip__image">
+            <img src="{{ asset('assets/img/moto-delivery.png') }}" alt="Delivery gratis">
+          </div>
+
+          <div class="delivery-strip__right">
+            <strong>En compras a partir de 20$</strong>
+            <span>Aplica a zonas céntricas</span>
+          </div>
+        </div>
+      </div>
+    </section>
     <!--<section class="hero">
       <div class="hero__slides">
         <article class="hero__slide is-active">
@@ -119,105 +130,64 @@ $catalogBlocks = [
       </div>
     </section>-->
 
-    @if(isset($featuredProducts) && $featuredProducts->isNotEmpty())
-      <section class="featured-month section-space">
-        <div class="container-reduced">
-          <div class="featured-products featured-products--carousel">
-            <div class="featured-products__head">
-              <div class="featured-products__title-wrap">
-                <span class="discount-badge">
-                  <i class="fa-solid fa-percent"></i>
-                </span>
-                <h2>Productos del mes</h2>
-              </div>
+    <section class="featured-and-steps">
+      <div class="container featured-and-steps__grid">
 
-              <div class="featured-carousel__controls">
-                <button type="button" class="featured-carousel__btn" @click="$dispatch('featured-prev')">
-                  <i class="fa-solid fa-angle-left"></i>
-                </button>
+        <div class="featured-products card-panel">
 
-                <button type="button" class="featured-carousel__btn" @click="$dispatch('featured-next')">
-                  <i class="fa-solid fa-angle-right"></i>
-                </button>
-              </div>
+          <div class="featured-products__head">
+            <div class="featured-products__title-wrap">
+              <span class="discount-badge">
+                <i class="fa-solid fa-percent"></i>
+              </span>
+              <h2>Productos del mes</h2>
             </div>
 
-            <div class="featured-carousel" x-data="featuredCarousel({ total: {{ $featuredProducts->count() }} })"
-              x-init="init()" @featured-prev.window="prev()" @featured-next.window="next()">
-              <div class="featured-carousel__stage">
-                @foreach($featuredProducts as $index => $product)
-                  <article class="product-card featured-carousel__card" :class="cardClass({{ $index }})"
-                    @click="goTo({{ $index }})">
-                    @if($product->is_controlled)
-                      <div class="product-card__controlled" tabindex="0" title="Este producto requiere récipe.">
-                        <span class="product-card__controlled-dot"></span>
-                        <div class="product-card__controlled-tooltip">
-                          Este producto requiere récipe.
-                        </div>
-                      </div>
-                    @endif
+            @php
+              $serverNow = now();
+              $deadline = now()->endOfMonth();
 
-                    <div class="product-card__image">
-                      <img src="{{ $product->image_url }}" alt="{{ $product->name }}">
-                    </div>
+              $serverNowMs = $serverNow->timestamp * 1000;
+              $deadlineMs = $deadline->timestamp * 1000;
+            @endphp
 
-                    <div class="product-card__body">
-                      <div class="product-card__title-wrap">
-                        <h3 class="product-card__title">{{ $product->name }}</h3>
-                      </div>
-
-                      <p class="product-card__brand">
-                        {{ $product->laboratory?->name }}
-                      </p>
-
-                      <span class="product-card__status {{ $product->cantidad > 0 ? 'is-available' : 'is-unavailable' }}">
-                        {{ $product->cantidad > 0 ? 'Disponible' : 'Agotado' }}
-                      </span>
-
-                      <p class="product-card__price">
-                        $ {{ number_format($product->price, 2, '.', ',') }}
-                      </p>
-
-                      <div class="cart-inline-control" x-data="cartControl({
-                                            productId: {{ $product->id }},
-                                            initialQuantity: 0,
-                                            maxStock: {{ (int) $product->cantidad }},
-                                            productName: @js($product->name),
-                                            addUrl: '{{ route('cart.add', $product) }}',
-                                            incrementUrl: '{{ route('cart.increment', $product) }}',
-                                            decrementUrl: '{{ route('cart.decrement', $product) }}'
-                                        })">
-                        <template x-if="quantity === 0">
-                          <button type="button" class="product-card__button" @click.stop="add()">
-                            Agregar al carrito
-                          </button>
-                        </template>
-
-                        <template x-if="quantity > 0">
-                          <div class="product-qty-control">
-                            <button type="button" class="product-qty-control__btn" @click.stop="decrement()">−</button>
-                            <span class="product-qty-control__value" x-text="quantity"></span>
-                            <button type="button" class="product-qty-control__btn" @click.stop="increment()">+</button>
-                          </div>
-                        </template>
-                      </div>
-                    </div>
-                  </article>
-                @endforeach
-              </div>
-
-              <div class="featured-carousel__dots">
-                @foreach($featuredProducts as $index => $product)
-                  <button type="button" class="featured-carousel__dot" :class="{ 'is-active': current === {{ $index }} }"
-                    @click="goTo({{ $index }})">
-                  </button>
-                @endforeach
-              </div>
+            <div class="countdown" data-countdown-monthly data-server-now-ms="{{ $serverNowMs }}"
+              data-deadline-ms="{{ $deadlineMs }}">
+              <div><strong data-days>00</strong><span>Días</span></div>
+              <div><strong data-hours>00</strong><span>Horas</span></div>
+              <div><strong data-minutes>00</strong><span>Minutos</span></div>
             </div>
           </div>
+
+          <div class="monthly-carousel" data-monthly-carousel>
+            <button type="button" class="monthly-carousel__arrow monthly-carousel__arrow--prev" data-carousel-prev
+              aria-label="Producto anterior">
+              <i class="fa-solid fa-angle-left"></i>
+            </button>
+
+            <div class="monthly-carousel__viewport">
+              <livewire:product-search mode="monthly" layout="carousel" />
+            </div>
+
+            <button type="button" class="monthly-carousel__arrow monthly-carousel__arrow--next" data-carousel-next
+              aria-label="Producto siguiente">
+              <i class="fa-solid fa-angle-right"></i>
+            </button>
+          </div>
+
         </div>
-      </section>
-    @endif
+
+        <aside class="steps-card">
+          <h2>¿Cómo hacer<br>tu pedido?</h2>
+          <ol>
+            <li>Selecciona tus productos</li>
+            <li>Completa tus datos</li>
+            <li>Confirma tu compra</li>
+          </ol>
+        </aside>
+
+      </div>
+    </section>
 
     <section class="ally-labs section-space">
       <div class="container">

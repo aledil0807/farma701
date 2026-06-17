@@ -26,15 +26,14 @@ class ImportController extends Controller
         DB::beginTransaction();
 
         try {
-            Product::query()->delete();
-            Category::query()->delete();
+            
             
 
             Excel::import(new ProductsImport, $request->file('file'));
 
             DB::commit();
 
-            return back()->with('success', 'Catálogo reemplazado e importado correctamente.');
+            return back()->with('success', 'Catálogo Actualizado e importado correctamente.');
         } catch (\Throwable $e) {
             DB::rollBack();
 

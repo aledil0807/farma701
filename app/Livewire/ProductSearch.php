@@ -16,6 +16,9 @@ class ProductSearch extends Component
     public $laboratoryId = null;
     public ?string $customTitle = null;
 
+    public string $mode = 'catalog';
+    public string $layout = 'catalog';
+
     public function mount(
         ExchangeRateService $exchangeRateService,
         $initialSearch = '',
@@ -53,6 +56,7 @@ class ProductSearch extends Component
     public function render()
     {
         $query = Product::with(['laboratory', 'category'])
+
             ->where(function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%')
                     ->orWhereHas('laboratory', function ($labQuery) {
@@ -60,16 +64,23 @@ class ProductSearch extends Component
                     });
             });
 
-        if ($this->filter === 'name_asc') {
+        if ($this->mode === 'monthly') {
+            $query->where('is_monthly_product', true)
+                ->orderByRaw('monthly_order IS NULL, monthly_order ASC')
+                ->orderBy('monthly_order')
+                ->orderBy('name');
+        }
+        elseif ($this->filter === 'name_asc') {
             $query->orderBy('name', 'asc');
         } elseif ($this->laboratoryId) {
             $query->where('laboratory_id', $this->laboratoryId);
-        }
-        elseif ($this->filter === 'name_desc') {
+        } elseif ($this->filter === 'name_desc') {
             $query->orderBy('name', 'desc');
         } else {
             $query->orderBy('id');
         }
+
+
 
         $totalProducts = (clone $query)->count();
         $products = $query->take($this->perPage)->get();

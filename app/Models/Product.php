@@ -17,7 +17,9 @@ class Product extends Model
         'is_controlled',
         'image_path',
         'category_id',   // Nuevo campo
-        'laboratory_id'  // Nuevo campo
+        'laboratory_id',  // Nuevo campo
+        'is_monthly_product',
+        'monthly_order',
     ];
 
     // Dentro de la clase Product

@@ -10,6 +10,7 @@ use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\Admin\ExchangeRateController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\LaboratoryController;
+use App\Http\Controllers\Admin\MonthlyProductController;
 
 
 use App\Models\Banner;
@@ -21,6 +22,8 @@ use App\Models\Product;
 
 //Ruta para ver el catálogo
 Route::get('/', function () {
+
+    
     $banners = Banner::where('is_active', true)
         ->orderBy('sort_order')
         ->orderByDesc('id')
@@ -36,7 +39,13 @@ Route::get('/', function () {
         'DROTAFARMA',
         'DISTRILAB',
     ];
-    $featuredProductIds = [101, 205, 330, 411, 522];
+    $featuredProductIds = [355, 321, 522];
+
+    $monthlyProducts = Product::with(['laboratory', 'category'])
+    ->where('is_monthly_product', true)
+    ->orderByRaw('monthly_order IS NULL, monthly_order ASC')
+    ->orderBy('name')
+    ->get();
 
     $featuredProducts = Product::with(['category', 'laboratory'])
         ->whereIn('id', $featuredProductIds)
@@ -52,7 +61,7 @@ Route::get('/', function () {
         })
         ->values();
 
-    return view('inicio', compact('banners', 'allyLabs','featuredProducts'));
+    return view('inicio', compact('banners', 'allyLabs', 'featuredProducts', 'monthlyProducts'));
 })->name('home');
 
 Route::get('/busqueda', function () {
@@ -93,6 +102,15 @@ Route::middleware('admin.auth')->prefix('admin')->group(function () {
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
     })->name('admin.dashboard');
+
+    Route::get('/productos-del-mes', [MonthlyProductController::class, 'index'])
+        ->name('admin.monthly-products.index');
+
+    Route::post('/productos-del-mes', [MonthlyProductController::class, 'update'])
+        ->name('admin.monthly-products.update');
+
+    Route::get('/productos-del-mes/buscar', [MonthlyProductController::class, 'search'])
+        ->name('admin.monthly-products.search');
 
     Route::get('/laboratorios', [LaboratoryController::class, 'index'])->name('admin.laboratories.index');
     Route::get('/laboratorios/{laboratory}/editar', [LaboratoryController::class, 'edit'])->name('admin.laboratories.edit');

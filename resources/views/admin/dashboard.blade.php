@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Admin</title>
     <link rel="stylesheet" href="{{ asset('css/style.css') }}?v={{ $assetVersion }}">
 </head>
+
 <body>
     <main style="padding: 30px;">
         <h1>Panel de administración</h1>
@@ -18,6 +20,7 @@
             <a href="{{ route('admin.exchange-rate.edit') }}" class="btn-view-more">Actualizar tasa</a>
             <a href="{{ route('admin.banners.index') }}" class="btn-view-more">Administrar banners</a>
             <a href="{{ route('admin.laboratories.index') }}" class="btn-view-more">Administrar Imagen de Laboratorios</a>
+            <a href="{{ route('admin.monthly-products.index') }}" class="admin-btn admin-btn--primary">Productos del mes</a>
             <form action="{{ route('admin.logout') }}" method="POST">
                 @csrf
                 <button type="submit" class="clear-cart-btn">Cerrar sesión</button>
@@ -26,4 +29,5 @@
         </div>
     </main>
 </body>
+
 </html>
