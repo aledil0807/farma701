@@ -26,10 +26,16 @@ class ImportController extends Controller
         DB::beginTransaction();
 
         try {
-            
-            
 
-            Excel::import(new ProductsImport, $request->file('file'));
+
+
+            DB::transaction(function () use ($request) {
+                Product::query()->update([
+                    'is_active' => false,
+                ]);
+
+                Excel::import(new ProductsImport, $request->file('file'));
+            });
 
             DB::commit();
 

@@ -35,7 +35,7 @@ class LaboratoryController extends Controller
             $oldPath = public_path('storage/laboratories/' . $laboratory->logo_path);
 
             $file = $request->file('logo');
-            $filename = time() . '_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+            $filename = preg_replace('/\s+/', '_', $file->getClientOriginalName());
 
             //Ruta real en producion: $destination = base_path('../public_html/storage/laboratories');
             $destination = public_path('storage/laboratories');

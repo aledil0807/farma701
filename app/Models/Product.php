@@ -20,6 +20,7 @@ class Product extends Model
         'laboratory_id',  // Nuevo campo
         'is_monthly_product',
         'monthly_order',
+        'is_active',
     ];
 
     // Dentro de la clase Product

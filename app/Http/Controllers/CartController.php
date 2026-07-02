@@ -322,6 +322,7 @@ class CartController extends Controller
     public function ajaxDetail(CartService $cartService, ExchangeRateService $exchangeRateService)
     {
         $exchangeRate = 0;
+
         try {
             $exchangeRate = $exchangeRateService->getOfficialUsdToBsRate();
         } catch (\Exception $e) {
@@ -332,6 +333,7 @@ class CartController extends Controller
             'success' => true,
             'cart' => $cartService->getCart(),
             'totals' => $cartService->totals($exchangeRate),
+            'exchange_rate' => $exchangeRate,
         ]);
     }
 }

@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ExchangeRateController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\LaboratoryController;
 use App\Http\Controllers\Admin\MonthlyProductController;
+use App\Http\Controllers\Admin\QuoteController;
 
 
 use App\Models\Banner;
@@ -23,7 +24,7 @@ use App\Models\Product;
 //Ruta para ver el catálogo
 Route::get('/', function () {
 
-    
+
     $banners = Banner::where('is_active', true)
         ->orderBy('sort_order')
         ->orderByDesc('id')
@@ -42,10 +43,10 @@ Route::get('/', function () {
     $featuredProductIds = [355, 321, 522];
 
     $monthlyProducts = Product::with(['laboratory', 'category'])
-    ->where('is_monthly_product', true)
-    ->orderByRaw('monthly_order IS NULL, monthly_order ASC')
-    ->orderBy('name')
-    ->get();
+        ->where('is_monthly_product', true)
+        ->orderByRaw('monthly_order IS NULL, monthly_order ASC')
+        ->orderBy('name')
+        ->get();
 
     $featuredProducts = Product::with(['category', 'laboratory'])
         ->whereIn('id', $featuredProductIds)
@@ -131,4 +132,40 @@ Route::middleware('admin.auth')->prefix('admin')->group(function () {
     Route::get('/banners/{banner}/edit', [BannerController::class, 'edit'])->name('admin.banners.edit');
     Route::put('/banners/{banner}', [BannerController::class, 'update'])->name('admin.banners.update');
     Route::delete('/banners/{banner}', [BannerController::class, 'destroy'])->name('admin.banners.destroy');
+
+    Route::get('/presupuestos', [QuoteController::class, 'index'])
+        ->name('admin.quotes.index');
+
+    Route::post('/presupuestos', [QuoteController::class, 'store'])
+        ->name('admin.quotes.store');
+
+    Route::get('/presupuestos/productos/buscar', [QuoteController::class, 'searchProducts'])
+        ->name('admin.quotes.products.search');
+
+    Route::get('/presupuestos/{quote}/edit', [QuoteController::class, 'edit'])
+        ->name('admin.quotes.edit');
+
+    Route::put('/presupuestos/{quote}', [QuoteController::class, 'update'])
+        ->name('admin.quotes.update');
+
+    Route::delete('/presupuestos/{quote}', [QuoteController::class, 'destroy'])
+        ->name('admin.quotes.destroy');
+
+    Route::post('/presupuestos/{quote}/grupos', [QuoteController::class, 'storeGroup'])
+        ->name('admin.quotes.groups.store');
+
+    Route::put('/presupuestos/grupos/{group}', [QuoteController::class, 'updateGroup'])
+        ->name('admin.quotes.groups.update');
+
+    Route::delete('/presupuestos/grupos/{group}', [QuoteController::class, 'destroyGroup'])
+        ->name('admin.quotes.groups.destroy');
+
+    Route::post('/presupuestos/grupos/{group}/items', [QuoteController::class, 'storeItem'])
+        ->name('admin.quotes.items.store');
+
+    Route::put('/presupuestos/items/{item}', [QuoteController::class, 'updateItem'])
+        ->name('admin.quotes.items.update');
+
+    Route::delete('/presupuestos/items/{item}', [QuoteController::class, 'destroyItem'])
+        ->name('admin.quotes.items.destroy');
 });

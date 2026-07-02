@@ -41,6 +41,7 @@ class ProductsImport implements ToModel
                 'price' => $row['7'] ?? 0,
                 'is_controlled' => (($row['8'] ?? null) === 'S'),
                 'image_path' => $row['6'] ?? null,
+                'is_active' => true,
             ]
         );
 

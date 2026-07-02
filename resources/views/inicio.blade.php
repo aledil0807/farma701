@@ -43,7 +43,7 @@ $catalogBlocks = [
 
   <script defer src="{{ asset('js/main.js') }}?v={{ $assetVersion }}"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  @livewireStyles
+  
 </head>
 
 <body>
@@ -82,7 +82,7 @@ $catalogBlocks = [
       </section>
     @endif
     <section class="delivery-strip">
-      <div class="container">
+      <div class="container container-strip">
         <div class="delivery-strip__content">
           <div class="delivery-strip__left">
             <span>Delivery gratis</span>
@@ -215,6 +215,7 @@ $catalogBlocks = [
           </div>
         </div>
       </div>
+      <!-- <x-floating-cart /> -->
     </section>
 
     <!--<section class="catalog section-space section-divider-top section-divider-bottom">
@@ -245,8 +246,9 @@ $catalogBlocks = [
     </div>
   </footer>
 
-
+  
   @livewireScripts
+  
 </body>
 
 </html>

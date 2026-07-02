@@ -21,6 +21,7 @@
             <a href="{{ route('admin.banners.index') }}" class="btn-view-more">Administrar banners</a>
             <a href="{{ route('admin.laboratories.index') }}" class="btn-view-more">Administrar Imagen de Laboratorios</a>
             <a href="{{ route('admin.monthly-products.index') }}" class="admin-btn admin-btn--primary">Productos del mes</a>
+            <a href="{{ route('admin.quotes.index') }}" class="admin-btn admin-btn--primary">Presupuestos</a>
             <form action="{{ route('admin.logout') }}" method="POST">
                 @csrf
                 <button type="submit" class="clear-cart-btn">Cerrar sesión</button>

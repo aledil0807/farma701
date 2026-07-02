@@ -27,6 +27,385 @@ document.addEventListener("alpine:init", () => {
     });
 });
 
+window.floatingCart = function (config) {
+    return {
+        open: false,
+        step: "summary",
+        loading: false,
+        processing: false,
+        cartLoaded: false,
+
+        detailUrl: config.detailUrl,
+        checkoutUrl: config.checkoutUrl,
+
+        items: [],
+        totals: {
+            subtotal_usd: 0,
+            subtotal_bs: 0,
+            discount_percent: 0,
+            discount_usd: 0,
+            discount_bs: 0,
+            total_usd: 0,
+            total_bs: 0,
+            items_count: 0,
+            units_count: 0,
+        },
+        exchangeRate: 0,
+
+        pendingOps: [],
+        processingQueue: false,
+        lastServerCart: null,
+        lastServerTotals: null,
+
+        async init() {
+            await this.loadCart(false);
+
+            window.addEventListener("floating-cart-refresh", async () => {
+                await this.loadCart(false);
+            });
+        },
+
+        async toggle() {
+            this.open = !this.open;
+
+            if (this.open) {
+                this.step = "summary";
+
+                if (!this.cartLoaded) {
+                    await this.loadCart(true);
+                } else {
+                    this.loadCart(false);
+                }
+            }
+        },
+
+        close() {
+            this.open = false;
+            this.step = "summary";
+        },
+
+        goToCheckout() {
+            if (!this.items.length) return;
+            this.step = "checkout";
+        },
+
+        async loadCart(showLoading = true) {
+            if (showLoading && !this.cartLoaded) {
+                this.loading = true;
+            }
+
+            try {
+                const response = await fetch(this.detailUrl, {
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        Accept: "application/json",
+                    },
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message || "No se pudo cargar el carrito.",
+                    );
+                }
+
+                this.applyServerCart(data);
+                this.cartLoaded = true;
+            } catch (error) {
+                console.error(error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        applyServerCart(data) {
+            this.items = Object.values(data.cart?.items || {});
+            this.totals = data.totals || this.totals;
+            this.exchangeRate = Number(
+                data.exchange_rate || this.exchangeRate || 0,
+            );
+
+            if (
+                this.totals?.units_count !== undefined &&
+                window.Alpine?.store("cart")
+            ) {
+                Alpine.store("cart").forceSync(this.totals.units_count);
+            }
+        },
+
+        recalculateTotals() {
+            let subtotalUsd = 0;
+            let unitsCount = 0;
+
+            this.items.forEach((item) => {
+                subtotalUsd +=
+                    Number(item.price_usd || 0) * Number(item.quantity || 0);
+                unitsCount += Number(item.quantity || 0);
+            });
+
+            const discountPercent = 5;
+            const discountUsd = subtotalUsd * (discountPercent / 100);
+            const totalUsd = subtotalUsd - discountUsd;
+
+            this.totals.subtotal_usd = subtotalUsd;
+            this.totals.subtotal_bs = subtotalUsd * this.exchangeRate;
+
+            this.totals.discount_percent = discountPercent;
+            this.totals.discount_usd = discountUsd;
+            this.totals.discount_bs = discountUsd * this.exchangeRate;
+
+            this.totals.total_usd = totalUsd;
+            this.totals.total_bs = totalUsd * this.exchangeRate;
+
+            this.totals.items_count = this.items.length;
+            this.totals.units_count = unitsCount;
+
+            if (window.Alpine?.store("cart")) {
+                Alpine.store("cart").forceSync(unitsCount);
+            }
+        },
+
+        syncWithServerSnapshot() {
+            if (this.lastServerCart && this.lastServerCart.items) {
+                this.items = Object.values(this.lastServerCart.items);
+            }
+
+            if (this.lastServerTotals) {
+                this.totals = this.lastServerTotals;
+            } else {
+                this.recalculateTotals();
+            }
+
+            if (
+                this.lastServerTotals?.units_count !== undefined &&
+                window.Alpine?.store("cart")
+            ) {
+                Alpine.store("cart").forceSync(
+                    this.lastServerTotals.units_count,
+                );
+            }
+        },
+
+        findItem(productId) {
+            return this.items.find((item) => {
+                return Number(item.product_id) === Number(productId);
+            });
+        },
+
+        enqueue(operation) {
+            this.pendingOps.push(operation);
+            this.processQueue();
+        },
+
+        async processQueue() {
+            if (this.processingQueue) return;
+
+            this.processingQueue = true;
+
+            while (this.pendingOps.length > 0) {
+                const op = this.pendingOps.shift();
+
+                try {
+                    const response = await fetch(op.url, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRF-TOKEN": document
+                                .querySelector('meta[name="csrf-token"]')
+                                .getAttribute("content"),
+                            "X-Requested-With": "XMLHttpRequest",
+                            Accept: "application/json",
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({}),
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(
+                            data.message || "No se pudo actualizar el carrito.",
+                        );
+                    }
+
+                    this.lastServerCart = data.cart || null;
+                    this.lastServerTotals = data.totals || null;
+                } catch (error) {
+                    console.error(error);
+
+                    if (typeof op.rollback === "function") {
+                        op.rollback();
+                        this.recalculateTotals();
+                    }
+                }
+            }
+
+            this.syncWithServerSnapshot();
+            this.processingQueue = false;
+        },
+
+        increment(productId) {
+            const item = this.findItem(productId);
+
+            if (!item) return;
+
+            const maxStock = Number(item.stock || 0);
+
+            if (maxStock <= 0 || Number(item.quantity) >= maxStock) {
+                window.dispatchEvent(
+                    new CustomEvent("stock-limit-reached", {
+                        detail: {
+                            message: `No hay más stock disponible para ${item.name}.`,
+                        },
+                    }),
+                );
+                return;
+            }
+
+            item.quantity++;
+            this.recalculateTotals();
+
+            this.enqueue({
+                url: `/ajax/carrito/incrementar/${productId}`,
+                rollback: () => {
+                    item.quantity = Math.max(0, item.quantity - 1);
+                },
+            });
+        },
+
+        decrement(productId) {
+            const item = this.findItem(productId);
+
+            if (!item) return;
+
+            const previousQuantity = item.quantity;
+
+            item.quantity--;
+
+            if (item.quantity <= 0) {
+                this.items = this.items.filter((cartItem) => {
+                    return Number(cartItem.product_id) !== Number(productId);
+                });
+            }
+
+            this.recalculateTotals();
+
+            this.enqueue({
+                url: `/ajax/carrito/disminuir/${productId}`,
+                rollback: () => {
+                    const existing = this.findItem(productId);
+
+                    if (existing) {
+                        existing.quantity = previousQuantity;
+                    } else {
+                        item.quantity = previousQuantity;
+                        this.items.push(item);
+                    }
+                },
+            });
+        },
+
+        remove(productId) {
+            const oldItems = [...this.items];
+
+            this.items = this.items.filter((item) => {
+                return Number(item.product_id) !== Number(productId);
+            });
+
+            this.recalculateTotals();
+
+            this.enqueue({
+                url: `/ajax/carrito/eliminar/${productId}`,
+                rollback: () => {
+                    this.items = oldItems;
+                },
+            });
+        },
+
+        clear() {
+            const oldItems = [...this.items];
+
+            this.items = [];
+            this.recalculateTotals();
+
+            this.enqueue({
+                url: `/ajax/carrito/vaciar`,
+                rollback: () => {
+                    this.items = oldItems;
+                },
+            });
+        },
+
+        async checkout(event) {
+            if (!this.items.length) {
+                alert("Tu carrito está vacío.");
+                return;
+            }
+
+            this.processing = true;
+
+            try {
+                const form = event.target;
+                const formData = new FormData(form);
+
+                const response = await fetch(this.checkoutUrl, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRF-TOKEN": document
+                            .querySelector('meta[name="csrf-token"]')
+                            .getAttribute("content"),
+                        "X-Requested-With": "XMLHttpRequest",
+                        Accept: "application/json",
+                    },
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    if (data.errors) {
+                        alert(Object.values(data.errors).flat().join("\n"));
+                        return;
+                    }
+
+                    throw new Error(
+                        data.message || "No se pudo procesar la compra.",
+                    );
+                }
+
+                if (data.success && data.whatsapp_url) {
+                    this.items = [];
+                    this.recalculateTotals();
+
+                    if (window.Alpine?.store("cart")) {
+                        Alpine.store("cart").forceSync(0);
+                    }
+
+                    window.location.href = data.whatsapp_url;
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Ocurrió un error al procesar la compra.");
+            } finally {
+                this.processing = false;
+            }
+        },
+
+        formatUsd(value) {
+            const number = Number(value || 0);
+            return number.toFixed(2);
+        },
+
+        formatBs(value) {
+            const number = Number(value || 0);
+            return number.toLocaleString("es-VE", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            });
+        },
+    };
+};
+
 window.cartControl = function (config) {
     return {
         productId: config.productId,
@@ -821,14 +1200,10 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             if (data.success && data.whatsapp_url) {
-                window.open(data.whatsapp_url, "_blank");
-
-                if (window.Alpine?.store("cart")) {
-                    Alpine.store("cart").forceSync(0);
-                }
-
-                window.location.reload();
+                window.location.href = data.whatsapp_url;
+                return;
             }
+            
         } catch (error) {
             console.error(error);
             alert("Ocurrió un error al procesar la compra.");
@@ -841,21 +1216,25 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-document.addEventListener('DOMContentLoaded', function () {
-    const carousels = document.querySelectorAll('[data-monthly-carousel]');
+document.addEventListener("DOMContentLoaded", function () {
+    const carousels = document.querySelectorAll("[data-monthly-carousel]");
 
     if (!carousels.length) return;
 
     carousels.forEach(function (carousel) {
-        const viewport = carousel.querySelector('.monthly-carousel__viewport');
-        const track = carousel.querySelector('[data-carousel-track]');
-        const prevButton = carousel.querySelector('[data-carousel-prev]');
-        const nextButton = carousel.querySelector('[data-carousel-next]');
+        const viewport = carousel.querySelector(".monthly-carousel__viewport");
+        const track = carousel.querySelector("[data-carousel-track]");
+        const prevButton = carousel.querySelector("[data-carousel-prev]");
+        const nextButton = carousel.querySelector("[data-carousel-next]");
 
         if (!viewport || !track || !prevButton || !nextButton) return;
 
         let activeIndex = 0;
+        let activePage = 0;
         let autoplay = null;
+
+        let isPageAnimating = false;
+        const pageTransitionDuration = 240;
 
         let dragStartX = 0;
         let dragStartY = 0;
@@ -864,29 +1243,40 @@ document.addEventListener('DOMContentLoaded', function () {
         let isHorizontalDrag = false;
 
         const autoplayDelay = 3500;
+        const desktopPageSize = 2;
+
+        function isDesktopCarousel() {
+            return window.innerWidth >= 901;
+        }
 
         function getCards() {
-            return Array.from(track.querySelectorAll('.product-card'));
+            return Array.from(track.querySelectorAll(".product-card"));
         }
 
-        function getTotal() {
-            return getCards().length;
+        function normalizeIndex(index, total) {
+            if (!total) return 0;
+            return ((index % total) + total) % total;
         }
 
-        function normalizeIndex(index) {
-            const total = getTotal();
-
+        function getPageCount(total) {
             if (!total) return 0;
 
-            return ((index % total) + total) % total;
+            if (isDesktopCarousel()) {
+                return Math.ceil(total / desktopPageSize);
+            }
+
+            return total;
         }
 
         function updateCarousel() {
             const cards = getCards();
             const total = cards.length;
+            const isDesktop = isDesktopCarousel();
 
-            carousel.classList.toggle('monthly-carousel--one-item', total === 1);
-            carousel.classList.toggle('monthly-carousel--two-items', total === 2);
+            carousel.classList.toggle(
+                "monthly-carousel--desktop-pages",
+                isDesktop,
+            );
 
             if (!total) {
                 prevButton.disabled = true;
@@ -894,64 +1284,136 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            prevButton.disabled = total <= 1;
-            nextButton.disabled = total <= 1;
+            const pageCount = getPageCount(total);
 
-            activeIndex = normalizeIndex(activeIndex);
+            prevButton.disabled = pageCount <= 1;
+            nextButton.disabled = pageCount <= 1;
 
-            const prevIndex = normalizeIndex(activeIndex - 1);
-            const nextIndex = normalizeIndex(activeIndex + 1);
+            cards.forEach(function (card) {
+                card.classList.remove(
+                    "is-monthly-active",
+                    "is-monthly-prev",
+                    "is-monthly-next",
+                    "is-monthly-preview",
+                    "is-monthly-visible",
+                    "is-monthly-hidden",
+                );
+            });
+
+            if (isDesktop) {
+                activePage = normalizeIndex(activePage, pageCount);
+
+                const start = activePage * desktopPageSize;
+                const end = start + desktopPageSize;
+
+                cards.forEach(function (card, index) {
+                    if (index >= start && index < end) {
+                        card.classList.add("is-monthly-visible");
+                    } else {
+                        card.classList.add("is-monthly-hidden");
+                    }
+                });
+
+                return;
+            }
+
+            activeIndex = normalizeIndex(activeIndex, total);
+
+            const prevIndex = normalizeIndex(activeIndex - 1, total);
+            const nextIndex = normalizeIndex(activeIndex + 1, total);
 
             cards.forEach(function (card, index) {
-                card.classList.remove(
-                    'is-monthly-active',
-                    'is-monthly-prev',
-                    'is-monthly-next',
-                    'is-monthly-hidden',
-                    'is-monthly-preview'
-                );
-
                 if (index === activeIndex) {
-                    card.classList.add('is-monthly-active');
+                    card.classList.add("is-monthly-active");
                     return;
                 }
 
-                if (total >= 3 && index === prevIndex) {
-                    card.classList.add('is-monthly-prev', 'is-monthly-preview');
+                if (index === prevIndex) {
+                    card.classList.add("is-monthly-prev", "is-monthly-preview");
                     return;
                 }
 
                 if (index === nextIndex) {
-                    card.classList.add('is-monthly-next', 'is-monthly-preview');
+                    card.classList.add("is-monthly-next", "is-monthly-preview");
                     return;
                 }
 
-                card.classList.add('is-monthly-hidden');
+                card.classList.add("is-monthly-hidden");
             });
         }
 
+        function changeDesktopPage(direction) {
+            const total = getCards().length;
+            const pageCount = getPageCount(total);
+
+            if (pageCount <= 1 || isPageAnimating) return;
+
+            isPageAnimating = true;
+
+            const leavingClass =
+                direction > 0
+                    ? "is-monthly-page-leaving-next"
+                    : "is-monthly-page-leaving-prev";
+
+            const enteringClass =
+                direction > 0
+                    ? "is-monthly-page-entering-next"
+                    : "is-monthly-page-entering-prev";
+
+            track.classList.add(leavingClass);
+
+            setTimeout(function () {
+                activePage = normalizeIndex(activePage + direction, pageCount);
+
+                updateCarousel();
+
+                track.classList.remove(leavingClass);
+                track.classList.add(enteringClass);
+
+                track.offsetHeight;
+
+                requestAnimationFrame(function () {
+                    track.classList.remove(enteringClass);
+
+                    setTimeout(function () {
+                        isPageAnimating = false;
+                    }, pageTransitionDuration);
+                });
+            }, pageTransitionDuration);
+        }
+
         function next() {
-            const total = getTotal();
+            const total = getCards().length;
 
             if (total <= 1) return;
 
-            activeIndex = normalizeIndex(activeIndex + 1);
+            if (isDesktopCarousel()) {
+                changeDesktopPage(1);
+                return;
+            }
+
+            activeIndex = normalizeIndex(activeIndex + 1, total);
             updateCarousel();
         }
 
         function prev() {
-            const total = getTotal();
+            const total = getCards().length;
 
             if (total <= 1) return;
 
-            activeIndex = normalizeIndex(activeIndex - 1);
+            if (isDesktopCarousel()) {
+                changeDesktopPage(-1);
+                return;
+            }
+
+            activeIndex = normalizeIndex(activeIndex - 1, total);
             updateCarousel();
         }
 
         function startAutoplay() {
             stopAutoplay();
 
-            if (getTotal() <= 1) return;
+            if (getPageCount(getCards().length) <= 1) return;
 
             autoplay = setInterval(function () {
                 next();
@@ -970,19 +1432,19 @@ document.addEventListener('DOMContentLoaded', function () {
             startAutoplay();
         }
 
-        nextButton.addEventListener('click', function () {
+        nextButton.addEventListener("click", function () {
             next();
             restartAutoplay();
         });
 
-        prevButton.addEventListener('click', function () {
+        prevButton.addEventListener("click", function () {
             prev();
             restartAutoplay();
         });
 
-        viewport.addEventListener('pointerdown', function (event) {
-            if (getTotal() <= 1) return;
-            if (event.pointerType === 'mouse') return;
+        viewport.addEventListener("pointerdown", function (event) {
+            if (getPageCount(getCards().length) <= 1) return;
+            if (event.pointerType === "mouse") return;
 
             dragStartX = event.clientX;
             dragStartY = event.clientY;
@@ -990,7 +1452,7 @@ document.addEventListener('DOMContentLoaded', function () {
             isDragging = true;
             isHorizontalDrag = false;
 
-            carousel.classList.add('is-swiping');
+            carousel.classList.add("is-swiping");
 
             if (viewport.setPointerCapture) {
                 viewport.setPointerCapture(event.pointerId);
@@ -999,32 +1461,36 @@ document.addEventListener('DOMContentLoaded', function () {
             stopAutoplay();
         });
 
-        viewport.addEventListener('pointermove', function (event) {
-            if (!isDragging) return;
+        viewport.addEventListener(
+            "pointermove",
+            function (event) {
+                if (!isDragging) return;
 
-            const deltaX = event.clientX - dragStartX;
-            const deltaY = event.clientY - dragStartY;
+                const deltaX = event.clientX - dragStartX;
+                const deltaY = event.clientY - dragStartY;
 
-            if (!isHorizontalDrag) {
-                if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) return;
+                if (!isHorizontalDrag) {
+                    if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) return;
 
-                if (Math.abs(deltaY) > Math.abs(deltaX)) {
-                    return;
+                    if (Math.abs(deltaY) > Math.abs(deltaX)) {
+                        return;
+                    }
+
+                    isHorizontalDrag = true;
                 }
 
-                isHorizontalDrag = true;
-            }
-
-            event.preventDefault();
-            dragDeltaX = deltaX;
-        }, { passive: false });
+                event.preventDefault();
+                dragDeltaX = deltaX;
+            },
+            { passive: false },
+        );
 
         function finishDrag(event) {
             if (!isDragging) return;
 
             const swipeDistance = 45;
 
-            carousel.classList.remove('is-swiping');
+            carousel.classList.remove("is-swiping");
 
             if (viewport.releasePointerCapture && event && event.pointerId) {
                 try {
@@ -1047,8 +1513,13 @@ document.addEventListener('DOMContentLoaded', function () {
             startAutoplay();
         }
 
-        viewport.addEventListener('pointerup', finishDrag);
-        viewport.addEventListener('pointercancel', finishDrag);
+        viewport.addEventListener("pointerup", finishDrag);
+        viewport.addEventListener("pointercancel", finishDrag);
+
+        window.addEventListener("resize", function () {
+            updateCarousel();
+            restartAutoplay();
+        });
 
         updateCarousel();
         startAutoplay();
@@ -1270,4 +1741,219 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     fetchProducts(buildSearchUrl(), false);
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const quoteBuilder = document.getElementById("quoteBuilder");
+
+    if (!quoteBuilder) return;
+
+    const productSearchUrl = quoteBuilder.dataset.productSearchUrl;
+
+    if (!productSearchUrl) return;
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function renderProducts(resultsContainer, products) {
+        if (!products.length) {
+            resultsContainer.innerHTML =
+                '<p class="admin-empty-text">No se encontraron productos.</p>';
+            return;
+        }
+
+        resultsContainer.innerHTML = products
+            .map(function (product) {
+                return `
+                <div class="quote-product-result">
+                    <div class="quote-product-result__image">
+                        <img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}">
+                    </div>
+
+                    <div class="quote-product-result__info">
+                        <strong>${escapeHtml(product.name)}</strong>
+                        <span>
+                            ${escapeHtml(product.laboratory || "Sin laboratorio")}
+                            · Stock: ${escapeHtml(product.stock)}
+                            · $ ${escapeHtml(product.price)}
+                        </span>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="admin-btn admin-btn--secondary"
+                        data-add-product-button
+                        data-product-id="${escapeHtml(product.id)}"
+                    >
+                        Agregar
+                    </button>
+                </div>
+            `;
+            })
+            .join("");
+    }
+
+    async function searchProducts(input) {
+        const groupCard = input.closest("[data-quote-group]");
+        const resultsContainer = groupCard.querySelector(
+            "[data-quote-search-results]",
+        );
+        const query = input.value.trim();
+
+        if (query.length < 2) {
+            resultsContainer.innerHTML = "";
+            return;
+        }
+
+        resultsContainer.innerHTML =
+            '<p class="admin-empty-text">Buscando productos...</p>';
+
+        const url = `${productSearchUrl}?q=${encodeURIComponent(query)}`;
+
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error("Error al buscar productos.");
+            }
+
+            const data = await response.json();
+
+            renderProducts(resultsContainer, data.products || []);
+        } catch (error) {
+            console.error(error);
+            resultsContainer.innerHTML =
+                '<p class="admin-empty-text">No se pudieron cargar los productos.</p>';
+        }
+    }
+
+    quoteBuilder.addEventListener("input", function (event) {
+        const input = event.target.closest("[data-quote-search-input]");
+
+        if (!input) return;
+
+        clearTimeout(input.searchTimeout);
+
+        input.searchTimeout = setTimeout(function () {
+            searchProducts(input);
+        }, 350);
+    });
+
+    quoteBuilder.addEventListener("click", function (event) {
+        const button = event.target.closest("[data-add-product-button]");
+
+        if (!button) return;
+
+        const groupCard = button.closest("[data-quote-group]");
+        const addProductForm = groupCard.querySelector(
+            "[data-add-product-form]",
+        );
+        const productIdInput = groupCard.querySelector("[data-add-product-id]");
+        const quantityHiddenInput = groupCard.querySelector(
+            "[data-add-product-quantity]",
+        );
+        const quantityInput = groupCard.querySelector(
+            "[data-quote-product-qty]",
+        );
+
+        productIdInput.value = button.dataset.productId;
+        quantityHiddenInput.value = quantityInput.value || 1;
+
+        if (addProductForm.requestSubmit) {
+            addProductForm.requestSubmit();
+        } else {
+            addProductForm.dispatchEvent(
+                new Event("submit", {
+                    bubbles: true,
+                    cancelable: true,
+                }),
+            );
+        }
+    });
+
+    async function submitQuoteAjaxForm(form) {
+        const confirmMessage = form.dataset.confirmMessage;
+
+        if (confirmMessage && !confirm(confirmMessage)) {
+            return;
+        }
+
+        const submitButton = form.querySelector('button[type="submit"]');
+
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
+
+        const formData = new FormData(form);
+
+        try {
+            const response = await fetch(form.action, {
+                method: "POST",
+                headers: {
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: formData,
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                if (data.errors) {
+                    alert(Object.values(data.errors).flat().join("\n"));
+                    return;
+                }
+
+                throw new Error(
+                    data.message || "No se pudo actualizar el presupuesto.",
+                );
+            }
+
+            const totalCard = quoteBuilder.querySelector(
+                "[data-quote-total-card]",
+            );
+
+            if (totalCard && data.quote_total_html) {
+                totalCard.outerHTML = data.quote_total_html;
+            }
+
+            if (data.group_id && data.group_html) {
+                const currentGroup = quoteBuilder.querySelector(
+                    `[data-quote-group][data-group-id="${data.group_id}"]`,
+                );
+
+                if (currentGroup) {
+                    currentGroup.outerHTML = data.group_html;
+                }
+            }
+        } catch (error) {
+            console.error(error);
+            alert("No se pudo actualizar el presupuesto. Intenta nuevamente.");
+        } finally {
+            if (submitButton) {
+                submitButton.disabled = false;
+            }
+        }
+    }
+
+    quoteBuilder.addEventListener("submit", function (event) {
+        const form = event.target.closest("[data-quote-ajax-form]");
+
+        if (!form) return;
+
+        event.preventDefault();
+
+        submitQuoteAjaxForm(form);
+    });
 });

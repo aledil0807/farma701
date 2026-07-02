@@ -9,7 +9,7 @@ use App\Services\ExchangeRateService;
 class ProductSearch extends Component
 {
     public $search = '';
-    public $perPage = 15;
+    public $perPage = 16;
     public $exchangeRate = 0;
     public $filter = '';
     public $showSearchHeader = false;
@@ -40,50 +40,85 @@ class ProductSearch extends Component
 
     public function updatingSearch()
     {
-        $this->perPage = 15;
+        $this->perPage = 16;
     }
 
     public function updatingFilter()
     {
-        $this->perPage = 15;
+        $this->perPage = 16;
     }
 
     public function loadMore()
     {
-        $this->perPage += 15;
+        $this->perPage += 16;
     }
 
     public function render()
     {
         $query = Product::with(['laboratory', 'category'])
-
-            ->where(function ($query) {
-                $query->where('name', 'like', '%' . $this->search . '%')
-                    ->orWhereHas('laboratory', function ($labQuery) {
-                        $labQuery->where('name', 'like', '%' . $this->search . '%');
-                    });
-            });
+            ->where('is_active', true);
 
         if ($this->mode === 'monthly') {
-            $query->where('is_monthly_product', true)
-                ->orderByRaw('monthly_order IS NULL, monthly_order ASC')
+            $query->where('is_monthly_product', true);
+        } else {
+            if ($this->laboratoryId) {
+                $query->where('laboratory_id', $this->laboratoryId);
+            }
+
+            if (trim($this->search) !== '') {
+                $query->where(function ($query) {
+                    $query->where('name', 'like', '%' . $this->search . '%')
+                        ->orWhereHas('laboratory', function ($labQuery) {
+                            $labQuery->where('name', 'like', '%' . $this->search . '%');
+                        })
+                        ->orWhereHas('category', function ($categoryQuery) {
+                            $categoryQuery->where('name', 'like', '%' . $this->search . '%');
+                        });
+                });
+            }
+        }
+
+        if ($this->mode === 'monthly') {
+            $query->orderByRaw('monthly_order IS NULL, monthly_order ASC')
                 ->orderBy('monthly_order')
                 ->orderBy('name');
-        }
-        elseif ($this->filter === 'name_asc') {
-            $query->orderBy('name', 'asc');
-        } elseif ($this->laboratoryId) {
-            $query->where('laboratory_id', $this->laboratoryId);
-        } elseif ($this->filter === 'name_desc') {
-            $query->orderBy('name', 'desc');
         } else {
-            $query->orderBy('id');
+            switch ($this->filter) {
+                case 'name_asc':
+                    $query->orderBy('name', 'asc');
+                    break;
+
+                case 'name_desc':
+                    $query->orderBy('name', 'desc');
+                    break;
+
+                case 'price_asc':
+                    $query->orderBy('price', 'asc')
+                        ->orderBy('name', 'asc');
+                    break;
+
+                case 'price_desc':
+                    $query->orderBy('price', 'desc')
+                        ->orderBy('name', 'asc');
+                    break;
+
+                case 'laboratory_asc':
+                    $query->orderByRaw('(SELECT name FROM laboratories WHERE laboratories.id = products.laboratory_id) IS NULL ASC')
+                        ->orderByRaw('(SELECT name FROM laboratories WHERE laboratories.id = products.laboratory_id) ASC')
+                        ->orderBy('name', 'asc');
+                    break;
+
+                default:
+                    $query->orderBy('id', 'asc');
+                    break;
+            }
         }
-
-
 
         $totalProducts = (clone $query)->count();
-        $products = $query->take($this->perPage)->get();
+
+        $products = $query
+            ->take($this->perPage)
+            ->get();
 
         return view('livewire.product-search', [
             'products' => $products,
