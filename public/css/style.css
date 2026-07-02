@@ -1631,12 +1631,12 @@ input {
 }
 
 .search-results-filter {
+  width: min(calc(100% - 48px), var(--container));
+  margin: 0 auto 24px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 18px;
-  justify-content: end;
-  margin-right: 5%;
+  justify-content: flex-end;
+  gap: 14px;
 }
 
 .search-results-filter label {
