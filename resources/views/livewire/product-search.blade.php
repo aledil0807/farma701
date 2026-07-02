@@ -6,7 +6,7 @@
                     $priceBs = $exchangeRate > 0 ? $product->price * $exchangeRate : null;
                 @endphp
 
-                <a class="product-card">
+                <a class="product-card" wire:key="product-card-{{ $this->getId() }}-{{ $product->id }}">
                     @if($product->is_controlled)
                         <div class="product-card__controlled" tabindex="0" title="Este producto requiere récipe.">
                             <span class="product-card__controlled-dot"></span>
@@ -113,7 +113,7 @@
                             $priceBs = $exchangeRate > 0 ? $product->price * $exchangeRate : null;
                         @endphp
 
-                        <a class="product-card">
+                        <a class="product-card wire:key="product-card-{{ $this->getId() }}-{{ $product->id }}"">
                             @if($product->is_controlled)
                                 <div class="product-card__controlled" tabindex="0" title="Este producto requiere récipe.">
                                     <span class="product-card__controlled-dot"></span>
@@ -161,7 +161,7 @@
                                     $ {{ number_format($product->price, 2, '.', ',') }}
                                 </p>
 
-                                <div x-data="cartControlFromAttributes($el)" data-product-id="{{ $product->id }}"
+                                <div x-data="cartControlFromAttributes($el)" data-product-id="{{ $product->id }}" wire:key="product-card-{{ $this->getId() }}-{{ $product->id }}"
                                     data-initial-quantity="{{ app(\App\Services\CartService::class)->getProductQuantity($product->id) }}"
                                     data-max-stock="{{ (int) ($product->cantidad ?? 0) }}"
                                     data-product-name="{{ e($product->name) }}"
