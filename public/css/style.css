@@ -1637,6 +1637,7 @@ input {
   align-items: center;
   justify-content: flex-end;
   gap: 14px;
+  margin-top: 12px;
 }
 
 .search-results-filter label {
