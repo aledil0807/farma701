@@ -45,4 +45,39 @@ class Product extends Model
     {
         return $this->belongsTo(Laboratory::class);
     }
+
+    public function scopeSearchByTerms($query, ?string $search)
+    {
+        $search = trim(preg_replace('/\s+/', ' ', (string) $search));
+
+        if ($search === '') {
+            return $query;
+        }
+
+        $terms = collect(explode(' ', $search))
+            ->map(fn($term) => trim($term))
+            ->filter(fn($term) => mb_strlen($term) >= 2)
+            ->values();
+
+        if ($terms->isEmpty()) {
+            return $query;
+        }
+
+        return $query->where(function ($mainQuery) use ($terms) {
+            foreach ($terms as $term) {
+                $mainQuery->where(function ($termQuery) use ($term) {
+                    $like = '%' . $term . '%';
+
+                    $termQuery
+                        ->where('name', 'like', $like)
+                        ->orWhereHas('laboratory', function ($labQuery) use ($like) {
+                            $labQuery->where('name', 'like', $like);
+                        })
+                        ->orWhereHas('category', function ($categoryQuery) use ($like) {
+                            $categoryQuery->where('name', 'like', $like);
+                        });
+                });
+            }
+        });
+    }
 }

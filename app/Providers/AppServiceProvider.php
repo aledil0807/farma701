@@ -18,12 +18,13 @@ class AppServiceProvider extends ServiceProvider
         View::share('assetVersion', env('ASSET_VERSION', '1.0.0'));
 
         View::composer(
-            ['inicio', 'busqueda', 'carrito', 'laboratories.show'],
+            ['components.header', 'inicio', 'busqueda', 'carrito', 'laboratories.show'],
             function ($view) {
-                $view->with(
-                    'laboratoriesNav',
-                    Laboratory::orderBy('name')->get()
-                );
+                $laboratories = Laboratory::visible()
+                    ->orderBy('name')
+                    ->get();
+
+                $view->with('laboratoriesNav', $laboratories);
             }
         );
     }

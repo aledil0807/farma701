@@ -1203,7 +1203,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 window.location.href = data.whatsapp_url;
                 return;
             }
-            
         } catch (error) {
             console.error(error);
             alert("Ocurrió un error al procesar la compra.");
@@ -1761,14 +1760,14 @@ document.addEventListener("DOMContentLoaded", function () {
             .replaceAll("'", "&#039;");
     }
 
-    function renderProducts(resultsContainer, products) {
-        if (!products.length) {
+    function renderProducts(resultsContainer, products, append = false) {
+        if (!products.length && !append) {
             resultsContainer.innerHTML =
                 '<p class="admin-empty-text">No se encontraron productos.</p>';
             return;
         }
 
-        resultsContainer.innerHTML = products
+        const html = products
             .map(function (product) {
                 return `
                 <div class="quote-product-result">
@@ -1797,24 +1796,45 @@ document.addEventListener("DOMContentLoaded", function () {
             `;
             })
             .join("");
+
+        if (append) {
+            resultsContainer.insertAdjacentHTML("beforeend", html);
+        } else {
+            resultsContainer.innerHTML = html;
+        }
     }
 
-    async function searchProducts(input) {
+    async function searchProducts(input, page = 1, append = false) {
         const groupCard = input.closest("[data-quote-group]");
         const resultsContainer = groupCard.querySelector(
             "[data-quote-search-results]",
         );
+        const loadMoreButton = groupCard.querySelector(
+            "[data-quote-load-more-products]",
+        );
+
         const query = input.value.trim();
 
         if (query.length < 2) {
             resultsContainer.innerHTML = "";
+
+            if (loadMoreButton) {
+                loadMoreButton.style.display = "none";
+                loadMoreButton.dataset.nextPage = "";
+            }
+
             return;
         }
 
-        resultsContainer.innerHTML =
-            '<p class="admin-empty-text">Buscando productos...</p>';
+        if (!append) {
+            resultsContainer.innerHTML =
+                '<p class="admin-empty-text">Buscando productos...</p>';
+        } else if (loadMoreButton) {
+            loadMoreButton.disabled = true;
+            loadMoreButton.textContent = "Cargando...";
+        }
 
-        const url = `${productSearchUrl}?q=${encodeURIComponent(query)}`;
+        const url = `${productSearchUrl}?q=${encodeURIComponent(query)}&page=${page}`;
 
         try {
             const response = await fetch(url, {
@@ -1830,11 +1850,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const data = await response.json();
 
-            renderProducts(resultsContainer, data.products || []);
+            renderProducts(resultsContainer, data.products || [], append);
+
+            if (loadMoreButton) {
+                if (data.has_more && data.next_page) {
+                    loadMoreButton.style.display = "inline-flex";
+                    loadMoreButton.dataset.nextPage = data.next_page;
+                    loadMoreButton.dataset.currentQuery = query;
+                    loadMoreButton.disabled = false;
+                    loadMoreButton.textContent = "Cargar más productos";
+                } else {
+                    loadMoreButton.style.display = "none";
+                    loadMoreButton.dataset.nextPage = "";
+                    loadMoreButton.dataset.currentQuery = "";
+                }
+            }
         } catch (error) {
             console.error(error);
-            resultsContainer.innerHTML =
-                '<p class="admin-empty-text">No se pudieron cargar los productos.</p>';
+
+            if (!append) {
+                resultsContainer.innerHTML =
+                    '<p class="admin-empty-text">No se pudieron cargar los productos.</p>';
+            }
+
+            if (loadMoreButton) {
+                loadMoreButton.disabled = false;
+                loadMoreButton.textContent = "Cargar más productos";
+            }
         }
     }
 
@@ -1843,10 +1885,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!input) return;
 
+        const groupCard = input.closest("[data-quote-group]");
+        const loadMoreButton = groupCard.querySelector(
+            "[data-quote-load-more-products]",
+        );
+
+        if (loadMoreButton) {
+            loadMoreButton.style.display = "none";
+            loadMoreButton.dataset.nextPage = "";
+            loadMoreButton.dataset.currentQuery = "";
+        }
+
         clearTimeout(input.searchTimeout);
 
         input.searchTimeout = setTimeout(function () {
-            searchProducts(input);
+            searchProducts(input, 1, false);
         }, 350);
     });
 
@@ -1880,6 +1933,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 }),
             );
         }
+    });
+
+    quoteBuilder.addEventListener("click", function (event) {
+        const loadMoreButton = event.target.closest(
+            "[data-quote-load-more-products]",
+        );
+
+        if (!loadMoreButton) return;
+
+        const groupCard = loadMoreButton.closest("[data-quote-group]");
+        const input = groupCard.querySelector("[data-quote-search-input]");
+        const nextPage = Number(loadMoreButton.dataset.nextPage || 0);
+
+        if (!input || !nextPage) return;
+
+        searchProducts(input, nextPage, true);
     });
 
     async function submitQuoteAjaxForm(form) {
@@ -1955,5 +2024,24 @@ document.addEventListener("DOMContentLoaded", function () {
         event.preventDefault();
 
         submitQuoteAjaxForm(form);
+    });
+    quoteBuilder.addEventListener("input", function (event) {
+        const input = event.target.closest("[data-quote-item-auto-update]");
+
+        if (!input) return;
+
+        const form = input.closest("[data-quote-ajax-form]");
+
+        if (!form) return;
+
+        clearTimeout(form.autoUpdateTimeout);
+
+        form.autoUpdateTimeout = setTimeout(function () {
+            const quantityInput = form.querySelector('input[name="quantity"]');
+
+            const quantity = Number(quantityInput?.value || 0);
+
+            submitQuoteAjaxForm(form);
+        }, 450);
     });
 });

@@ -205,12 +205,12 @@ class QuoteController extends Controller
     {
         $data = $request->validate([
             'quantity' => ['required', 'integer', 'min:1'],
-            'unit_price_usd' => ['required', 'numeric', 'min:0'],
+
         ]);
 
         $item->update([
             'quantity' => (int) $data['quantity'],
-            'unit_price_usd' => (float) $data['unit_price_usd'],
+
         ]);
 
         $quote = $item->group->quote;
@@ -244,6 +244,7 @@ class QuoteController extends Controller
     public function searchProducts(Request $request)
     {
         $search = trim((string) $request->input('q', ''));
+        $perPage = 10;
 
         $products = Product::query()
             ->where('is_active', true)
@@ -261,21 +262,13 @@ class QuoteController extends Controller
                 'category:id,name',
             ])
             ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($subQuery) use ($search) {
-                    $subQuery
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhereHas('laboratory', function ($labQuery) use ($search) {
-                            $labQuery->where('name', 'like', "%{$search}%");
-                        })
-                        ->orWhereHas('category', function ($categoryQuery) use ($search) {
-                            $categoryQuery->where('name', 'like', "%{$search}%");
-                        });
-                });
+                $query->searchByTerms($search);
             })
             ->orderBy('name')
-            ->limit(10)
-            ->get()
-            ->map(function ($product) {
+            ->paginate($perPage);
+
+        return response()->json([
+            'products' => $products->getCollection()->map(function ($product) {
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
@@ -285,10 +278,10 @@ class QuoteController extends Controller
                     'price' => number_format((float) $product->price, 2, '.', ''),
                     'image_url' => $product->image_url,
                 ];
-            });
-
-        return response()->json([
-            'products' => $products,
+            })->values(),
+            'current_page' => $products->currentPage(),
+            'next_page' => $products->hasMorePages() ? $products->currentPage() + 1 : null,
+            'has_more' => $products->hasMorePages(),
         ]);
     }
 

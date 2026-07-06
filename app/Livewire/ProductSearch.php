@@ -66,15 +66,7 @@ class ProductSearch extends Component
             }
 
             if (trim($this->search) !== '') {
-                $query->where(function ($query) {
-                    $query->where('name', 'like', '%' . $this->search . '%')
-                        ->orWhereHas('laboratory', function ($labQuery) {
-                            $labQuery->where('name', 'like', '%' . $this->search . '%');
-                        })
-                        ->orWhereHas('category', function ($categoryQuery) {
-                            $categoryQuery->where('name', 'like', '%' . $this->search . '%');
-                        });
-                });
+                $query->searchByTerms($this->search);
             }
         }
 

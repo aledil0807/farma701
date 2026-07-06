@@ -26,4 +26,20 @@ class Laboratory extends Model
 
         return asset('assets/img/labs/default-lab.png');
     }
+    public function activeProducts()
+    {
+        return $this->hasMany(Product::class, 'laboratory_id')
+            ->where('is_active', true)
+            ->where('cantidad', '>', 0);
+    }
+
+    public function scopeVisible($query)
+    {
+        return $query->whereIn('id', function ($subQuery) {
+            $subQuery->select('laboratory_id')
+                ->from('products')
+                ->where('is_active', 1)
+                ->whereNotNull('laboratory_id');
+        });
+    }
 }

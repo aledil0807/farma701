@@ -53,7 +53,7 @@ $catalogBlocks = [
 
   <main>
     @if($banners->isNotEmpty())
-      <section class="hero-carousel" x-data="heroCarousel()" x-init="init()">
+      <section class="hero-carousel container-reduced" x-data="heroCarousel()" x-init="init()">
         <div class="hero-carousel__track" :style="`transform: translateX(-${current * 100}%);`">
           @foreach($banners as $banner)
             <div class="hero-carousel__slide">

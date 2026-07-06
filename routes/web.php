@@ -56,11 +56,10 @@ Route::get('/', function () {
         })
         ->values();
 
-    $allyLabs = Laboratory::whereIn('name', $featuredLabs)->get()
-        ->sortBy(function ($lab) use ($featuredLabs) {
-            return array_search($lab->name, $featuredLabs);
-        })
-        ->values();
+    $allyLabs = Laboratory::visible()
+        ->orderBy('name')
+        ->get();
+        
 
     return view('inicio', compact('banners', 'allyLabs', 'featuredProducts', 'monthlyProducts'));
 })->name('home');
