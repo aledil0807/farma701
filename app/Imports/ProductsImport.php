@@ -28,21 +28,29 @@ class ProductsImport implements ToModel
             'name' => $laboratoryName !== '' ? $laboratoryName : 'SIN LABORATORIO',
         ]);
 
+        $productName = trim((string) ($row['1'] ?? ''));
+
+        $updateData = [
+            'name' => $productName,
+            'category_id' => $category->id,
+            'laboratory_id' => $laboratory->id,
+            'cantidad' => $row['5'] ?? 0,
+            'has_iva' => (($row['4'] ?? null) == '1'),
+            'price' => $row['7'] ?? 0,
+            'is_controlled' => (($row['8'] ?? null) === 'S'),
+            'is_active' => true,
+            'search_text' => Product::makeSearchText(
+                $productName,
+                $laboratory->name
+                
+            ),
+        ];
+
         Product::updateOrCreate(
             [
                 'id' => $productId,
-            ],
-            [
-                'name' => $row['1'] ?? '',
-                'category_id' => $category->id,
-                'laboratory_id' => $laboratory->id,
-                'cantidad' => $row['5'] ?? 0,
-                'has_iva' => (($row['4'] ?? null) == '1'),
-                'price' => $row['7'] ?? 0,
-                'is_controlled' => (($row['8'] ?? null) === 'S'),
-                'image_path' => $row['6'] ?? null,
-                'is_active' => true,
-            ]
+            ], 
+                $updateData
         );
 
         return null;

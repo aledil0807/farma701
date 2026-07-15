@@ -1066,6 +1066,8 @@ input {
 
 
 
+
+
 @media (max-width: 1100px) {
   .featured-and-steps__grid {
     grid-template-columns: 1fr;
@@ -4105,3 +4107,50 @@ input {
 }
 
 /*vista presentacion de productos*/
+
+
+.steps-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.steps-card h2,
+.steps-card ol {
+  position: relative;
+  z-index: 2;
+}
+
+.steps-card__character {
+  display: none;
+}
+
+@media (min-width: 701px) {
+  
+
+  .steps-card__character {
+    display: block;
+    position: absolute;
+    width: clamp(300px, 19vw, 350px);
+    right: 32px;
+    bottom: 0px;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .steps-card__character img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 18px 28px rgba(15, 23, 42, 0.16));
+  }
+}
+
+
+
+@media (max-width: 700px) {
+  .steps-card__character {
+    display: none;
+  }
+}

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Product extends Model
 {
@@ -21,6 +22,7 @@ class Product extends Model
         'is_monthly_product',
         'monthly_order',
         'is_active',
+        'search_text',
     ];
 
     // Dentro de la clase Product
@@ -54,8 +56,23 @@ class Product extends Model
             return $query;
         }
 
+        $rawAliases = config('product_search.aliases', []);
+
+        $aliases = collect($rawAliases)
+            ->mapWithKeys(function ($values, $key) {
+                return [
+                    self::normalizeSearchText((string) $key) => collect($values)
+                        ->map(fn($value) => self::normalizeSearchText((string) $value))
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all(),
+                ];
+            })
+            ->all();
+
         $terms = collect(explode(' ', $search))
-            ->map(fn($term) => trim($term))
+            ->map(fn($term) => self::normalizeSearchText($term))
             ->filter(fn($term) => mb_strlen($term) >= 2)
             ->values();
 
@@ -63,21 +80,48 @@ class Product extends Model
             return $query;
         }
 
-        return $query->where(function ($mainQuery) use ($terms) {
+        return $query->where(function ($mainQuery) use ($terms, $aliases) {
             foreach ($terms as $term) {
-                $mainQuery->where(function ($termQuery) use ($term) {
-                    $like = '%' . $term . '%';
+                $expandedTerms = $aliases[$term] ?? [$term];
 
-                    $termQuery
-                        ->where('name', 'like', $like)
-                        ->orWhereHas('laboratory', function ($labQuery) use ($like) {
-                            $labQuery->where('name', 'like', $like);
-                        })
-                        ->orWhereHas('category', function ($categoryQuery) use ($like) {
-                            $categoryQuery->where('name', 'like', $like);
-                        });
+                $expandedTerms = collect($expandedTerms)
+                    ->map(fn($expandedTerm) => self::normalizeSearchText((string) $expandedTerm))
+                    ->filter()
+                    ->unique()
+                    ->values();
+
+                $mainQuery->where(function ($termQuery) use ($expandedTerms) {
+                    foreach ($expandedTerms as $expandedTerm) {
+                        $termQuery->orWhere('search_text', 'like', '%' . $expandedTerm . '%');
+                    }
                 });
             }
         });
+    }
+
+    public static function normalizeSearchText(?string $text): string
+    {
+        $text = (string) $text;
+
+        $text = Str::ascii($text);
+        $text = mb_strtolower($text);
+        $text = preg_replace('/[^a-z0-9]+/i', ' ', $text);
+        $text = preg_replace('/\s+/', ' ', $text);
+
+        return trim($text);
+    }
+
+    public static function makeSearchText(
+        ?string $productName,
+        ?string $laboratoryName = null,
+        ?string $categoryName = null
+    ): string {
+        return self::normalizeSearchText(
+            trim(
+                (string) $productName . ' ' .
+                (string) $laboratoryName . ' ' .
+                (string) $categoryName
+            )
+        );
     }
 }

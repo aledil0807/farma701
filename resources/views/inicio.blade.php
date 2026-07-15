@@ -43,7 +43,7 @@ $catalogBlocks = [
 
   <script defer src="{{ asset('js/main.js') }}?v={{ $assetVersion }}"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  
+
 </head>
 
 <body>
@@ -179,11 +179,21 @@ $catalogBlocks = [
 
         <aside class="steps-card">
           <h2>¿Cómo hacer<br>tu pedido?</h2>
+
           <ol>
             <li>Selecciona tus productos</li>
             <li>Completa tus datos</li>
             <li>Confirma tu compra</li>
           </ol>
+
+          <div class="steps-card__character" aria-hidden="true">
+            <picture>
+              <source media="(min-width: 701px) and (max-width: 1100px)"
+                srcset="{{ asset('assets/img/sr-ricardo-muñeco.png') }}">
+
+              <img src="{{ asset('assets/img/sr-ricardo-muñeco-2.png') }}" alt="">
+            </picture>
+          </div>
         </aside>
 
       </div>
@@ -246,9 +256,9 @@ $catalogBlocks = [
     </div>
   </footer>
 
-  
+
   @livewireScripts
-  
+
 </body>
 
 </html>

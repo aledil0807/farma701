@@ -56,10 +56,35 @@ Route::get('/', function () {
         })
         ->values();
 
+    $featuredLabs = [
+        'CALOX',
+        'PHARMETIQUE',
+        'ROWE',
+        'VALMORCA',
+        'FARMA',
+        'MEGALABS',
+        'DROTAFARMA',
+        'DISTRILAB',
+    ];
+
     $allyLabs = Laboratory::visible()
-        ->orderBy('name')
-        ->get();
-        
+        ->get()
+        ->filter(function ($lab) use ($featuredLabs) {
+            return in_array(
+                mb_strtoupper(trim($lab->name)),
+                $featuredLabs,
+                true
+            );
+        })
+        ->sortBy(function ($lab) use ($featuredLabs) {
+            return array_search(
+                mb_strtoupper(trim($lab->name)),
+                $featuredLabs,
+                true
+            );
+        })
+        ->values();
+
 
     return view('inicio', compact('banners', 'allyLabs', 'featuredProducts', 'monthlyProducts'));
 })->name('home');

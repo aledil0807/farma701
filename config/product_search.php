@@ -25,11 +25,25 @@ return [
         'ampollas' => ['ampolla', 'ampollas', 'amp'],
         'amp' => ['ampolla', 'ampollas', 'amp'],
 
+        'sol' => ['soluciones', 'solucion', 'sol'],
+        'soluciones' => ['soluciones', 'solucion', 'sol'],
+        'solución' => ['soluciones', 'solucion', 'sol'],
+
+        'intramuscular' => ['intramuscular', 'intramusculares', 'I.M'],
+
+        'intravenoso' => ['intravenoso', 'intravenosa', 'I.V'],
+
+        'intraarticular' => ['intraarticular', 'intraarticulares', 'I.A'],
+
+        'supension' => ['suspensión', 'suspension', 'susp'],
+
+        'sol oft' => ['solución oftalmica', 'solución oftalmica', 'sol oft'],
+
         'gotas' => ['gotas', 'gota', 'gts'],
         'gota' => ['gotas', 'gota', 'gts'],
         'gts' => ['gotas', 'gota', 'gts'],
 
         'crema' => ['crema', 'crm'],
-        'crm' => ['crema', 'crm'],
+        'crm' => ['crema', 'crm', 'cremas'],
     ],
 ];

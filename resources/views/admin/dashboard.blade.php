@@ -27,7 +27,10 @@
                 <button type="submit" class="clear-cart-btn">Cerrar sesión</button>
             </form>
             <a href="{{ route('home') }}">ir a catalogo</a>
+            <x-floating-cart />
         </div>
+
+        
     </main>
 </body>
 
