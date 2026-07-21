@@ -71,16 +71,21 @@ class Product extends Model
             })
             ->all();
 
-        $terms = collect(explode(' ', $search))
+        $normalizedSearch = self::normalizeSearchText($search);
+
+        $terms = collect(explode(' ', $normalizedSearch))
             ->map(fn($term) => self::normalizeSearchText($term))
-            ->filter(fn($term) => mb_strlen($term) >= 2)
+            ->filter()
             ->values();
 
         if ($terms->isEmpty()) {
             return $query;
         }
 
-        return $query->where(function ($mainQuery) use ($terms, $aliases) {
+        $wrappedColumn = self::wrappedSearchTextSql();
+        $termsCount = $terms->count();
+
+        $query->where(function ($mainQuery) use ($terms, $aliases, $wrappedColumn, $termsCount) {
             foreach ($terms as $term) {
                 $expandedTerms = $aliases[$term] ?? [$term];
 
@@ -90,13 +95,91 @@ class Product extends Model
                     ->unique()
                     ->values();
 
-                $mainQuery->where(function ($termQuery) use ($expandedTerms) {
+                $mainQuery->where(function ($termQuery) use ($expandedTerms, $wrappedColumn, $termsCount) {
                     foreach ($expandedTerms as $expandedTerm) {
-                        $termQuery->orWhere('search_text', 'like', '%' . $expandedTerm . '%');
+                        if (mb_strlen($expandedTerm) === 1) {
+                            // 1. Letra como palabra exacta: " c "
+                            $termQuery->orWhereRaw(
+                                "{$wrappedColumn} LIKE ?",
+                                ['% ' . $expandedTerm . ' %']
+                            );
+
+                            // 2. Letra seguida de número: k1, k2, b12, etc.
+                            foreach (range(0, 9) as $digit) {
+                                $termQuery->orWhereRaw(
+                                    "{$wrappedColumn} LIKE ?",
+                                    ['% ' . $expandedTerm . $digit . '%']
+                                );
+                            }
+
+                            // 3. Si la búsqueda tiene más de una palabra,
+                            // permite que la letra sea el inicio de una palabra:
+                            // "centella a" encuentra "centella asiatica"
+                            if ($termsCount > 1) {
+                                $termQuery->orWhereRaw(
+                                    "{$wrappedColumn} LIKE ?",
+                                    ['% ' . $expandedTerm . '%']
+                                );
+                            }
+                        } else {
+                            $termQuery->orWhere('search_text', 'like', '%' . $expandedTerm . '%');
+                        }
                     }
                 });
             }
         });
+
+        $searchTerms = collect(explode(' ', $normalizedSearch))
+            ->filter()
+            ->values();
+
+        $orderSql = "
+        CASE
+            WHEN {$wrappedColumn} LIKE ? THEN 0
+    ";
+
+        $orderBindings = [
+            '% ' . $normalizedSearch . ' %',
+        ];
+
+        if ($searchTerms->count() >= 2) {
+            $lastTerm = $searchTerms->last();
+
+            if (mb_strlen($lastTerm) === 1) {
+                $basePhrase = $searchTerms->implode(' ');
+
+                foreach (range(0, 9) as $digit) {
+                    $orderSql .= " WHEN {$wrappedColumn} LIKE ? THEN 1 ";
+                    $orderBindings[] = '% ' . $basePhrase . $digit . '%';
+                }
+
+                // Ejemplo:
+                // "centella a" prioriza "centella asiatica"
+                $orderSql .= " WHEN {$wrappedColumn} LIKE ? THEN 2 ";
+                $orderBindings[] = '% ' . $basePhrase . '%';
+            }
+        }
+
+        $orderSql .= "
+            WHEN search_text LIKE ? THEN 3
+            ELSE 4
+        END
+    ";
+
+        $orderBindings[] = $normalizedSearch . '%';
+
+        return $query->orderByRaw($orderSql, $orderBindings);
+    }
+
+    private static function wrappedSearchTextSql(): string
+    {
+        $driver = config('database.default');
+
+        if ($driver === 'sqlite') {
+            return "' ' || search_text || ' '";
+        }
+
+        return "CONCAT(' ', search_text, ' ')";
     }
 
     public static function normalizeSearchText(?string $text): string
@@ -119,8 +202,7 @@ class Product extends Model
         return self::normalizeSearchText(
             trim(
                 (string) $productName . ' ' .
-                (string) $laboratoryName . ' ' .
-                (string) $categoryName
+                (string) $laboratoryName
             )
         );
     }

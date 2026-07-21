@@ -12,6 +12,9 @@ use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\LaboratoryController;
 use App\Http\Controllers\Admin\MonthlyProductController;
 use App\Http\Controllers\Admin\QuoteController;
+use App\Http\Controllers\Admin\ControlledProductReportController;
+use App\Http\Controllers\Admin\DashboardController;
+
 
 
 use App\Models\Banner;
@@ -124,9 +127,8 @@ Route::post('/admin/login', [AdminAuthController::class, 'login'])->name('admin.
 Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 
 Route::middleware('admin.auth')->prefix('admin')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('admin.dashboard');
-    })->name('admin.dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->name('admin.dashboard');
 
     Route::get('/productos-del-mes', [MonthlyProductController::class, 'index'])
         ->name('admin.monthly-products.index');
@@ -192,4 +194,25 @@ Route::middleware('admin.auth')->prefix('admin')->group(function () {
 
     Route::delete('/presupuestos/items/{item}', [QuoteController::class, 'destroyItem'])
         ->name('admin.quotes.items.destroy');
+
+    Route::get('/productos-controlados', [ControlledProductReportController::class, 'index'])
+        ->name('admin.controlled-products.index');
+
+    Route::post('/productos-controlados', [ControlledProductReportController::class, 'store'])
+        ->name('admin.controlled-products.store');
+
+    Route::get('/productos-controlados/{controlledProduct}', [ControlledProductReportController::class, 'show'])
+        ->name('admin.controlled-products.show');
+
+    Route::delete('/productos-controlados/{controlledProduct}', [ControlledProductReportController::class, 'destroy'])
+        ->name('admin.controlled-products.destroy');
+
+    Route::post('/productos-controlados/{controlledProduct}/items', [ControlledProductReportController::class, 'storeItem'])
+        ->name('admin.controlled-products.items.store');
+
+    Route::delete('/productos-controlados/items/{item}', [ControlledProductReportController::class, 'destroyItem'])
+        ->name('admin.controlled-products.items.destroy');
+    
+    Route::put('/productos-controlados/items/{item}', [ControlledProductReportController::class, 'updateItem'])
+        ->name('admin.controlled-products.items.update');
 });

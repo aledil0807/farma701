@@ -38,6 +38,7 @@ class ProductsImport implements ToModel
             'has_iva' => (($row['4'] ?? null) == '1'),
             'price' => $row['7'] ?? 0,
             'is_controlled' => (($row['8'] ?? null) === 'S'),
+            'image_path' => $row['6'] ?? null,
             'is_active' => true,
             'search_text' => Product::makeSearchText(
                 $productName,

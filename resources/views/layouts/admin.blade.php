@@ -8,16 +8,13 @@
     <script src="{{ asset('js/main.js') }}?v={{ $assetVersion }}"></script>
     @livewireStyles
 </head>
-<body>
-    <header>
-        <h1>Panel Admin</h1>
-    </header>
+<body class="admin-panel-body">
+    <div class="admin-panel-shell">
+        @include('admin.partials.sidebar')
 
-    <main>
-        @yield('content')
-    </main>
-
-    @livewireScripts
-    
+        <main class="admin-panel-main">
+            @yield('content')
+        </main>
+    </div>
 </body>
 </html>

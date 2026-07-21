@@ -37,6 +37,8 @@ return [
 
         'supension' => ['suspensión', 'suspension', 'susp'],
 
+        
+
         'sol oft' => ['solución oftalmica', 'solución oftalmica', 'sol oft'],
 
         'gotas' => ['gotas', 'gota', 'gts'],

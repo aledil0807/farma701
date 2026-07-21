@@ -38,26 +38,26 @@
     @include('admin.quotes.partials.total-card', ['quote' => $quote])
 
     <div class="admin-card">
-        <h2>Agregar conjunto</h2>
+        <h2>Crear Presupuesto</h2>
 
         <form method="POST" action="{{ route('admin.quotes.groups.store', $quote) }}">
             @csrf
 
             <div class="admin-form-grid">
                 <div class="admin-form__group">
-                    <label class="admin-form__label">Nombre del conjunto</label>
+                    <label class="admin-form__label">Nombre del presupuesto</label>
                     <input
                         type="text"
                         name="name"
                         class="admin-form__input-text"
-                        placeholder="Ej: Tratamiento gripe"
+                        placeholder=""
                         required
                     >
                 </div>
 
                 <div class="admin-form__group admin-form__group--button">
                     <button type="submit" class="admin-btn admin-btn--primary">
-                        Agregar conjunto
+                        Agregar presupuesto
                     </button>
                 </div>
             </div>
