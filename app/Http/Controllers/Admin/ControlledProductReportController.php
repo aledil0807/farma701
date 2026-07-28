@@ -7,6 +7,7 @@ use App\Models\ControlledProductReport;
 use App\Models\ControlledProductReportItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ControlledProductReportController extends Controller
 {
@@ -33,7 +34,7 @@ class ControlledProductReportController extends Controller
 
         $previousReport = ControlledProductReport::query()
             ->with('items')
-            ->whereRaw('LOWER(TRIM(category)) = ?', [mb_strtolower($category)])           
+            ->whereRaw('LOWER(TRIM(category)) = ?', [mb_strtolower($category)])
             ->orderByDesc('report_month')
             ->orderByDesc('id')
             ->first();
@@ -182,5 +183,24 @@ class ControlledProductReportController extends Controller
         return redirect()
             ->route('admin.controlled-products.show', $report)
             ->with('success', 'Producto eliminado del reporte correctamente.');
+    }
+
+    public function exportPdf(ControlledProductReport $controlledProduct)
+    {
+        $controlledProduct->load([
+            'items' => function ($query) {
+                $query->orderBy('product_name');
+            },
+        ]);
+
+        $fileName = 'reporte-productos-controlados-' .
+            ($controlledProduct->report_number ?? $controlledProduct->id) .
+            '.pdf';
+
+        return Pdf::loadView('admin.controlled-products.pdf', [
+            'report' => $controlledProduct,
+        ])
+            ->setPaper('letter', 'landscape')
+            ->stream($fileName);
     }
 }

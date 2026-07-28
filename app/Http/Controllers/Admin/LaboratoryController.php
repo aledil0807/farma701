@@ -8,12 +8,20 @@ use Illuminate\Http\Request;
 
 class LaboratoryController extends Controller
 {
-    public function index()
-    {
-        $laboratories = Laboratory::orderBy('name')->get();
+    public function index(Request $request)
+{
+    $search = trim((string) $request->input('search', ''));
 
-        return view('admin.laboratories.index', compact('laboratories'));
-    }
+    $laboratories = Laboratory::visible()
+        ->withCount('activeProducts')
+        ->when($search !== '', function ($query) use ($search) {
+            $query->where('name', 'like', '%' . $search . '%');
+        })
+        ->orderBy('name')
+        ->get();
+
+    return view('admin.laboratories.index', compact('laboratories', 'search'));
+}
 
     public function edit(Laboratory $laboratory)
     {

@@ -36,10 +36,30 @@
                             class="admin-form__input-text" required>
                     </div>
 
+                    @php
+                        $controlledCategories = [
+                            'Psicotrópicos',
+                            'Estupefacientes',
+                            'Codeínas y sus sales',
+                            'Misoprostol',
+                            'Oxazepam',
+                            'Morfina',
+                            'Fentanilo',
+                        ];
+                    @endphp
+
                     <div class="admin-form__group">
                         <label class="admin-form__label">Categoría</label>
-                        <input type="text" name="category" value="{{ old('category') }}" class="admin-form__input-text"
-                            placeholder="Ej: Psicotrópicos">
+
+                        <select name="category" class="admin-form__input-text" required>
+                            <option value="">Selecciona una categoría</option>
+
+                            @foreach($controlledCategories as $category)
+                                <option value="{{ $category }}" @selected(old('category') === $category)>
+                                    {{ $category }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <div class="admin-form__group">

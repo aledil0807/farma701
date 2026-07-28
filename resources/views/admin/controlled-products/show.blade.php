@@ -106,7 +106,9 @@
                     <p>Estos productos pertenecen únicamente a este reporte.</p>
                 </div>
 
-                <a href="#" class="admin-btn admin-btn--secondary">
+                <a href="{{ route('admin.controlled-products.pdf', $report) }}" class="admin-btn admin-btn--secondary"
+                    target="_blank">
+                    <i class="fa-solid fa-file-pdf"></i>
                     Exportar PDF
                 </a>
             </div>

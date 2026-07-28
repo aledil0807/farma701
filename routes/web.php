@@ -215,4 +215,7 @@ Route::middleware('admin.auth')->prefix('admin')->group(function () {
     
     Route::put('/productos-controlados/items/{item}', [ControlledProductReportController::class, 'updateItem'])
         ->name('admin.controlled-products.items.update');
+
+    Route::get('/productos-controlados/{controlledProduct}/pdf', [ControlledProductReportController::class, 'exportPdf'])
+        ->name('admin.controlled-products.pdf');
 });
