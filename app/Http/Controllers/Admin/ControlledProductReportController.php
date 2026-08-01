@@ -141,37 +141,53 @@ class ControlledProductReportController extends Controller
             ->with('success', 'Producto agregado al reporte correctamente.');
     }
 
-    public function updateItem(Request $request, ControlledProductReportItem $item)
+    public function updateItems(Request $request, ControlledProductReport $controlledProduct)
     {
         $data = $request->validate([
-            'invoice_number' => ['nullable', 'string', 'max:255'],
-            'units_per_box' => ['required', 'integer', 'min:1'],
-            'boxes_received' => ['nullable', 'integer', 'min:0'],
-            'exits' => ['required', 'integer', 'min:0'],
+            'items' => ['required', 'array'],
+
+            'items.*.invoice_number' => ['nullable', 'string', 'max:255'],
+            'items.*.units_per_box' => ['required', 'integer', 'min:1'],
+            'items.*.boxes_received' => ['nullable', 'integer', 'min:0'],
+            'items.*.exits' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        $unitsPerBox = (int) $data['units_per_box'];
-        $boxesReceived = (int) ($data['boxes_received'] ?? 0);
-        $previousStock = (int) $item->previous_stock;
-        $entries = $unitsPerBox * $boxesReceived;
-        $exits = (int) $data['exits'];
+        DB::transaction(function () use ($data, $controlledProduct) {
+            foreach ($data['items'] as $itemId => $itemData) {
+                $item = $controlledProduct->items()
+                    ->whereKey($itemId)
+                    ->first();
 
-        $item->update([
-            'invoice_number' => $data['invoice_number'] ?? null,
-            'units_per_box' => $unitsPerBox,
-            'boxes_received' => $boxesReceived,
-            'entries' => $entries,
-            'exits' => $exits,
-            'current_stock' => ControlledProductReportItem::calculateCurrentStock(
-                $previousStock,
-                $entries,
-                $exits
-            ),
-        ]);
+                if (!$item) {
+                    continue;
+                }
+
+                $unitsPerBox = max(1, (int) ($itemData['units_per_box'] ?? 1));
+                $boxesReceived = max(0, (int) ($itemData['boxes_received'] ?? 0));
+                $exitBoxes = max(0, (int) ($itemData['exits'] ?? 0));
+
+                $previousStock = (int) $item->previous_stock;
+                $entries = $unitsPerBox * $boxesReceived;
+                $exits = $unitsPerBox * $exitBoxes;
+
+                $item->update([
+                    'invoice_number' => $itemData['invoice_number'] ?? null,
+                    'units_per_box' => $unitsPerBox,
+                    'boxes_received' => $boxesReceived,
+                    'entries' => $entries,
+                    'exits' => $exits,
+                    'current_stock' => ControlledProductReportItem::calculateCurrentStock(
+                        $previousStock,
+                        $entries,
+                        $exits
+                    ),
+                ]);
+            }
+        });
 
         return redirect()
-            ->route('admin.controlled-products.show', $item->report)
-            ->with('success', 'Producto actualizado correctamente.');
+            ->route('admin.controlled-products.show', $controlledProduct)
+            ->with('success', 'Cambios guardados correctamente.');
     }
 
     public function destroyItem(ControlledProductReportItem $item)
@@ -203,4 +219,6 @@ class ControlledProductReportController extends Controller
             ->setPaper('letter', 'landscape')
             ->stream($fileName);
     }
+
+
 }

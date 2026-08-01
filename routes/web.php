@@ -216,6 +216,9 @@ Route::middleware('admin.auth')->prefix('admin')->group(function () {
     Route::put('/productos-controlados/items/{item}', [ControlledProductReportController::class, 'updateItem'])
         ->name('admin.controlled-products.items.update');
 
+    Route::put('/productos-controlados/{controlledProduct}/items', [ControlledProductReportController::class, 'updateItems'])
+        ->name('admin.controlled-products.items.update-bulk');    
+
     Route::get('/productos-controlados/{controlledProduct}/pdf', [ControlledProductReportController::class, 'exportPdf'])
         ->name('admin.controlled-products.pdf');
 });

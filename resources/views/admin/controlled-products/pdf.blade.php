@@ -279,7 +279,6 @@
                         <th class="col-product">Producto</th>
                         <th class="col-drugstore">Droguería</th>
                         <th class="col-invoice">Factura</th>
-                        <th class="col-number">Pastillas</th>
                         <th class="col-number">Exist. anterior</th>
                         <th class="col-number">Entradas</th>
                         <th class="col-number">Salidas</th>
@@ -293,7 +292,6 @@
                             <td>{{ $item->product_name }}</td>
                             <td>{{ $item->drugstore ?: '—' }}</td>
                             <td>{{ $item->invoice_number ?: '—' }}</td>
-                            <td class="col-number">{{ $item->pills_received }}</td>
                             <td class="col-number">{{ $item->previous_stock }}</td>
                             <td class="col-number">{{ $item->entries }}</td>
                             <td class="col-number">{{ $item->exits }}</td>

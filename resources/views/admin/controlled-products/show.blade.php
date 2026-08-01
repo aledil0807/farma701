@@ -106,12 +106,23 @@
                     <p>Estos productos pertenecen únicamente a este reporte.</p>
                 </div>
 
+                <button type="submit" form="controlledProductsBulkForm" class="admin-btn admin-btn--primary">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Guardar cambios
+                </button>
+
                 <a href="{{ route('admin.controlled-products.pdf', $report) }}" class="admin-btn admin-btn--secondary"
                     target="_blank">
                     <i class="fa-solid fa-file-pdf"></i>
                     Exportar PDF
                 </a>
             </div>
+
+            <form id="controlledProductsBulkForm" method="POST"
+                action="{{ route('admin.controlled-products.items.update-bulk', $report) }}">
+                @csrf
+                @method('PUT')
+            </form>
 
             <div class="admin-table-wrapper">
                 <table class="admin-table controlled-products-table">
@@ -141,21 +152,24 @@
                                 <td>{{ $item->drugstore ?: '—' }}</td>
 
                                 <td>
-                                    <input type="text" name="invoice_number" value="{{ $item->invoice_number }}"
+                                    <input type="text" name="items[{{ $item->id }}][invoice_number]"
+                                        value="{{ $item->invoice_number }}"
                                         class="admin-form__input-text controlled-products-table-input"
-                                        form="{{ $updateFormId }}" placeholder="Factura">
+                                        form="controlledProductsBulkForm" placeholder="Factura">
                                 </td>
 
                                 <td>
-                                    <input type="number" name="units_per_box" value="{{ $item->units_per_box ?: 1 }}" min="1"
+                                    <input type="number" name="items[{{ $item->id }}][units_per_box]"
+                                        value="{{ $item->units_per_box ?: 1 }}" min="1"
                                         class="admin-form__input-text controlled-products-table-input"
-                                        form="{{ $updateFormId }}" data-controlled-units-per-box>
+                                        form="controlledProductsBulkForm" data-controlled-units-per-box>
                                 </td>
 
                                 <td>
-                                    <input type="number" name="boxes_received" value="{{ $item->boxes_received ?? 0 }}" min="0"
+                                    <input type="number" name="items[{{ $item->id }}][boxes_received]"
+                                        value="{{ $item->boxes_received ?? 0 }}" min="0"
                                         class="admin-form__input-text controlled-products-table-input"
-                                        form="{{ $updateFormId }}" data-controlled-boxes>
+                                        form="controlledProductsBulkForm" data-controlled-boxes>
                                 </td>
 
                                 <td>
@@ -171,9 +185,10 @@
                                 </td>
 
                                 <td>
-                                    <input type="number" name="exits" value="{{ $item->exits }}" min="0"
-                                        class="admin-form__input-text controlled-products-table-input"
-                                        form="{{ $updateFormId }}" data-controlled-exits>
+                                    <input type="number" name="items[{{ $item->id }}][exits]"
+                                        value="{{ ($item->units_per_box ?? 1) > 0 ? (int) floor($item->exits / ($item->units_per_box ?: 1)) : $item->exits }}"
+                                        min="0" class="admin-form__input-text controlled-products-table-input"
+                                        form="controlledProductsBulkForm" data-controlled-exits>
                                 </td>
 
                                 <td>
@@ -183,17 +198,6 @@
                                 </td>
 
                                 <td>
-                                    <form id="{{ $updateFormId }}" method="POST"
-                                        action="{{ route('admin.controlled-products.items.update', $item) }}">
-                                        @csrf
-                                        @method('PUT')
-
-                                        <button type="submit"
-                                            class="admin-btn admin-btn--secondary controlled-products-save-btn"
-                                            title="Guardar cambios">
-                                            <i class="fa-solid fa-floppy-disk"></i>
-                                        </button>
-                                    </form>
                                     <form method="POST" action="{{ route('admin.controlled-products.items.destroy', $item) }}"
                                         onsubmit="return confirm('¿Eliminar este producto del reporte?')">
                                         @csrf
@@ -249,9 +253,10 @@
                     const unitsPerBox = Math.max(1, Number(unitsInput.value || 1));
                     const boxes = Math.max(0, Number(boxesInput.value || 0));
                     const previous = getPreviousStock();
-                    const exits = Math.max(0, Number(exitsInput.value || 0));
+                    const exitBoxes = Math.max(0, Number(exitsInput.value || 0));
 
                     const entries = unitsPerBox * boxes;
+                    const exits = unitsPerBox * exitBoxes;
                     const current = previous + entries - exits;
 
                     entriesOutput.textContent = entries;

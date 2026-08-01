@@ -1,10 +1,12 @@
 <div class="admin-card quote-group-card" data-quote-group data-group-id="{{ $group->id }}"
     x-data="{ imageModeOpen: false }" @keydown.escape.window="imageModeOpen = false">
     <div class="quote-group-card__header">
-        <div>
+        <div data-quote-capture-content>
             <h2>{{ $group->name }}</h2>
-            <button type="button" class="admin-btn admin-btn--secondary quote-image-mode-btn"
-                @click="imageModeOpen = true">
+            <button type="button" class="admin-btn admin-btn--secondary quote-image-mode-btn" @click="
+        imageModeOpen = true;
+        setTimeout(() => window.downloadQuoteCapture($el.closest('[data-quote-group]')), 500);
+    ">
                 Ver para captura
             </button>
             <p>
