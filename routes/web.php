@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\MonthlyProductController;
 use App\Http\Controllers\Admin\QuoteController;
 use App\Http\Controllers\Admin\ControlledProductReportController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\CustomerProductRequestController;
 
 
 
@@ -128,7 +129,7 @@ Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->name('admi
 
 Route::middleware('admin.auth')->prefix('admin')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->name('admin.dashboard');
+        ->name('admin.dashboard');
 
     Route::get('/productos-del-mes', [MonthlyProductController::class, 'index'])
         ->name('admin.monthly-products.index');
@@ -198,8 +199,21 @@ Route::middleware('admin.auth')->prefix('admin')->group(function () {
     Route::get('/productos-controlados', [ControlledProductReportController::class, 'index'])
         ->name('admin.controlled-products.index');
 
+
+
     Route::post('/productos-controlados', [ControlledProductReportController::class, 'store'])
         ->name('admin.controlled-products.store');
+
+    Route::post('/productos-controlados/mes', [ControlledProductReportController::class, 'storeMonth'])
+        ->name('admin.controlled-products.month.store');
+
+    Route::get('/productos-controlados/mes/{month}', [ControlledProductReportController::class, 'showMonth'])
+        ->name('admin.controlled-products.month.show')
+        ->where('month', '[0-9]{4}-[0-9]{2}');
+
+    Route::get('/productos-controlados/mes/{month}/pdf', [ControlledProductReportController::class, 'exportMonthPdf'])
+        ->name('admin.controlled-products.month.pdf')
+        ->where('month', '[0-9]{4}-[0-9]{2}');
 
     Route::get('/productos-controlados/{controlledProduct}', [ControlledProductReportController::class, 'show'])
         ->name('admin.controlled-products.show');
@@ -212,13 +226,17 @@ Route::middleware('admin.auth')->prefix('admin')->group(function () {
 
     Route::delete('/productos-controlados/items/{item}', [ControlledProductReportController::class, 'destroyItem'])
         ->name('admin.controlled-products.items.destroy');
-    
+
     Route::put('/productos-controlados/items/{item}', [ControlledProductReportController::class, 'updateItem'])
         ->name('admin.controlled-products.items.update');
 
     Route::put('/productos-controlados/{controlledProduct}/items', [ControlledProductReportController::class, 'updateItems'])
-        ->name('admin.controlled-products.items.update-bulk');    
+        ->name('admin.controlled-products.items.update-bulk');
 
     Route::get('/productos-controlados/{controlledProduct}/pdf', [ControlledProductReportController::class, 'exportPdf'])
         ->name('admin.controlled-products.pdf');
+    Route::post('/recordatorios-productos', [CustomerProductRequestController::class, 'store'])
+        ->name('admin.product-requests.store');
+    Route::patch('/recordatorios-productos/{productRequest}/enviado', [CustomerProductRequestController::class, 'markAsSent'])
+        ->name('admin.product-requests.mark-as-sent');
 });

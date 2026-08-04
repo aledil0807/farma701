@@ -5,9 +5,7 @@
         <div class="admin-page__header">
             <div>
                 <h1 class="admin-page__title">Presupuestos</h1>
-                <p class="admin-page__subtitle">
-                    Crea presupuestos internos organizados por conjuntos de productos.
-                </p>
+                
             </div>
 
             <form method="POST" action="{{ route('admin.quotes.store') }}" class="quote-create-form">

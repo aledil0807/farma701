@@ -2044,4 +2044,74 @@ document.addEventListener("DOMContentLoaded", function () {
             submitQuoteAjaxForm(form);
         }, 450);
     });
+
+    window.downloadQuoteCapture = async function (groupCard) {
+        if (!groupCard) return;
+
+        if (!window.html2canvas) {
+            alert("No se pudo cargar la herramienta para generar la imagen.");
+            return;
+        }
+
+        const captureContent = groupCard.querySelector(
+            "[data-quote-capture-content]",
+        );
+
+        if (!captureContent) {
+            alert("No se encontró el contenido para generar la imagen.");
+            return;
+        }
+
+        try {
+            captureContent.classList.add("is-generating-png");
+
+            const images = Array.from(captureContent.querySelectorAll("img"));
+
+            await Promise.all(
+                images.map(function (img) {
+                    if (img.complete) return Promise.resolve();
+
+                    return new Promise(function (resolve) {
+                        img.onload = resolve;
+                        img.onerror = resolve;
+                    });
+                }),
+            );
+
+            const canvas = await html2canvas(captureContent, {
+                backgroundColor: "#ffffff",
+                scale: 2,
+                useCORS: true,
+                allowTaint: false,
+                scrollX: 0,
+                scrollY: 0,
+            });
+
+            const imageUrl = canvas.toDataURL("image/png");
+
+            const groupTitle =
+                groupCard.querySelector(".quote-group-title-row h2")
+                    ?.textContent || "presupuesto";
+
+            const safeTitle = groupTitle
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/^-+|-+$/g, "");
+
+            const link = document.createElement("a");
+            link.href = imageUrl;
+            link.download = `${safeTitle || "presupuesto"}-captura.png`;
+
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error(error);
+            alert("No se pudo generar la imagen PNG.");
+        } finally {
+            captureContent.classList.remove("is-generating-png");
+        }
+    };
 });

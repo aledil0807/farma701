@@ -1,12 +1,19 @@
 <div class="admin-card quote-group-card" data-quote-group data-group-id="{{ $group->id }}"
-    x-data="{ imageModeOpen: false }" @keydown.escape.window="imageModeOpen = false">
+    x-data="{ imageModeOpen: false, captureMode: false }" @keydown.escape.window="imageModeOpen = false">
     <div class="quote-group-card__header">
-        <div data-quote-capture-content>
+        <div>
+
             <h2>{{ $group->name }}</h2>
             <button type="button" class="admin-btn admin-btn--secondary quote-image-mode-btn" @click="
-        imageModeOpen = true;
-        setTimeout(() => window.downloadQuoteCapture($el.closest('[data-quote-group]')), 500);
-    ">
+    captureMode = true;
+    imageModeOpen = true;
+
+    setTimeout(async () => {
+        await window.downloadQuoteCapture($el.closest('[data-quote-group]'));
+        imageModeOpen = false;
+        captureMode = false;
+    }, 350);
+">
                 Ver para captura
             </button>
             <p>
@@ -36,7 +43,7 @@
                     </button>
                 </div>
 
-                <div class="quote-capture-card">
+                <div class="quote-capture-card" data-quote-capture-content>
                     <div class="quote-capture-card__header">
                         <div>
                             <span class="quote-capture-card__eyebrow">Presupuesto</span>

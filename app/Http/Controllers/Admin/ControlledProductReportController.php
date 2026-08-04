@@ -16,9 +16,23 @@ class ControlledProductReportController extends Controller
         $reports = ControlledProductReport::query()
             ->withCount('items')
             ->latest()
-            ->paginate(15);
+            ->get();
 
-        return view('admin.controlled-products.index', compact('reports'));
+        $monthlyReports = $reports
+            ->groupBy('report_month')
+            ->map(function ($monthReports, $month) {
+                return (object) [
+                    'month' => $month,
+                    'reports_count' => $monthReports->count(),
+                    'items_count' => $monthReports->sum('items_count'),
+                    'created_at' => $monthReports->sortByDesc('created_at')->first()?->created_at,
+                    'categories' => $monthReports->pluck('category')->filter()->values(),
+                ];
+            })
+            ->sortByDesc('month')
+            ->values();
+
+        return view('admin.controlled-products.index', compact('monthlyReports'));
     }
 
     public function store(Request $request)
@@ -219,6 +233,162 @@ class ControlledProductReportController extends Controller
             ->setPaper('letter', 'landscape')
             ->stream($fileName);
     }
+
+    private function controlledCategories(): array
+    {
+        return [
+            'Psicotrópicos',
+            'Estupefacientes',
+            'Codeínas y sus sales',
+            'Misoprostol',
+            'Oxazepam',
+            'Morfina',
+            'Fentanilo',
+        ];
+    }
+
+    public function showMonth(string $month)
+    {
+        $categories = $this->controlledCategories();
+
+        $reports = ControlledProductReport::query()
+            ->withCount('items')
+            ->where('report_month', $month)
+            ->get()
+            ->sortBy(function ($report) use ($categories) {
+                $position = array_search($report->category, $categories, true);
+
+                return $position === false ? 999 : $position;
+            })
+            ->values();
+
+        $reportsByCategory = $reports->keyBy('category');
+
+        return view('admin.controlled-products.month-show', compact(
+            'month',
+            'categories',
+            'reports',
+            'reportsByCategory'
+        ));
+    }
+
+    public function exportMonthPdf(string $month)
+    {
+        $categories = $this->controlledCategories();
+
+        $reports = ControlledProductReport::query()
+            ->with([
+                'items' => function ($query) {
+                    $query->orderBy('product_name');
+                },
+            ])
+            ->where('report_month', $month)
+            ->get()
+            ->sortBy(function ($report) use ($categories) {
+                $position = array_search($report->category, $categories, true);
+
+                return $position === false ? 999 : $position;
+            })
+            ->values();
+
+        $reportsByCategory = $reports->keyBy('category');
+
+        $fileName = 'reporte-productos-controlados-' . $month . '.pdf';
+
+        return Pdf::loadView('admin.controlled-products.month-pdf', [
+            'month' => $month,
+            'categories' => $categories,
+            'reportsByCategory' => $reportsByCategory,
+        ])
+            ->setPaper('letter', 'portrait')
+            ->stream($fileName);
+    }
+
+
+    private function createReportForCategory(array $data, string $category): ControlledProductReport
+    {
+        $category = trim($category);
+
+        $previousReport = ControlledProductReport::query()
+            ->with('items')
+            ->whereRaw('LOWER(TRIM(category)) = ?', [mb_strtolower($category)])
+            ->where('report_month', '<', $data['report_month'])
+            ->orderByDesc('report_month')
+            ->orderByDesc('id')
+            ->first();
+
+        $report = ControlledProductReport::create([
+            'title' => ($data['title'] ?? null) ?: 'Reporte de productos controlados',
+            'report_month' => $data['report_month'],
+            'category' => $category,
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        $report->update([
+            'report_number' => 'PC-' . str_pad($report->id, 6, '0', STR_PAD_LEFT),
+        ]);
+
+        if ($previousReport) {
+            foreach ($previousReport->items as $previousItem) {
+                $previousStock = (int) $previousItem->current_stock;
+
+                $report->items()->create([
+                    'product_name' => $previousItem->product_name,
+                    'drugstore' => $previousItem->drugstore,
+                    'invoice_number' => null,
+                    'units_per_box' => (int) ($previousItem->units_per_box ?: 1),
+                    'boxes_received' => 0,
+                    'pills_received' => 0,
+                    'previous_stock' => $previousStock,
+                    'entries' => 0,
+                    'exits' => 0,
+                    'current_stock' => $previousStock,
+                ]);
+            }
+        }
+
+        return $report;
+    }
+
+    public function storeMonth(Request $request)
+    {
+        $data = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'report_month' => ['required', 'string', 'max:7'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $created = 0;
+        $skipped = 0;
+
+        DB::transaction(function () use ($data, &$created, &$skipped) {
+            foreach ($this->controlledCategories() as $category) {
+                $alreadyExists = ControlledProductReport::query()
+                    ->where('report_month', $data['report_month'])
+                    ->whereRaw('LOWER(TRIM(category)) = ?', [mb_strtolower($category)])
+                    ->exists();
+
+                if ($alreadyExists) {
+                    $skipped++;
+                    continue;
+                }
+
+                $this->createReportForCategory($data, $category);
+                $created++;
+            }
+        });
+
+        return redirect()
+            ->route('admin.controlled-products.month.show', $data['report_month'])
+            ->with(
+                'success',
+                "Reporte mensual preparado correctamente. Categorías creadas: {$created}. Categorías ya existentes: {$skipped}."
+            );
+    }
+
+
+
+
 
 
 }

@@ -111,11 +111,7 @@
                     Guardar cambios
                 </button>
 
-                <a href="{{ route('admin.controlled-products.pdf', $report) }}" class="admin-btn admin-btn--secondary"
-                    target="_blank">
-                    <i class="fa-solid fa-file-pdf"></i>
-                    Exportar PDF
-                </a>
+                
             </div>
 
             <form id="controlledProductsBulkForm" method="POST"

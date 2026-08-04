@@ -9,6 +9,7 @@ use App\Models\Laboratory;
 use App\Models\Product;
 use App\Models\Quote;
 use App\Services\ExchangeRateService;
+use App\Models\CustomerProductRequest;
 
 class DashboardController extends Controller
 {
@@ -65,11 +66,36 @@ class DashboardController extends Controller
             ->limit(6)
             ->get();
 
+        $productRequests = CustomerProductRequest::query()
+            ->whereNull('sent_at')
+            ->latest()
+            ->get()
+            ->map(function ($productRequest) {
+                $productRequest->has_active_match = Product::query()
+                    ->where('is_active', true)
+                    ->searchByTerms($productRequest->searched_product)
+                    ->exists();
+
+                return $productRequest;
+            })
+            ->sort(function ($a, $b) {
+                $availableComparison = (int) $b->has_active_match <=> (int) $a->has_active_match;
+
+                if ($availableComparison !== 0) {
+                    return $availableComparison;
+                }
+
+                return $b->created_at <=> $a->created_at;
+            })
+            ->take(8)
+            ->values();
+
         return view('admin.dashboard', compact(
             'stats',
             'latestQuotes',
             'latestControlledReports',
-            'lowStockProducts'
+            'lowStockProducts',
+            'productRequests'
         ));
     }
 }
