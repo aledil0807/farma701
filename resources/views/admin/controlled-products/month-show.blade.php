@@ -20,7 +20,7 @@
                     target="_blank"
                 >
                     <i class="fa-solid fa-file-pdf"></i>
-                    Exportar PDF global
+                    Exportar PDF
                 </a>
 
                 <a

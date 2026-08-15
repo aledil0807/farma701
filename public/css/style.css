@@ -5127,6 +5127,9 @@ input {
   .admin-dashboard-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .section-product-request-panel {
+    grid-template-columns: 1fr;
+  }
 
   .admin-dashboard-grid {
     grid-template-columns: 1fr;
@@ -5160,12 +5163,14 @@ input {
 }
 
 .dashboard-product-request-list {
-    display: grid;
-    gap: 10px;
-
-    max-height: 280px;
+    height: 100%;
+    max-height: 320px;
+    min-height: 0;
     overflow-y: auto;
-    padding-right: 6px;
+    display: grid;
+    gap: 15px;
+    overflow-x: hidden;
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .dashboard-product-request-list::-webkit-scrollbar {
@@ -5282,5 +5287,39 @@ input {
     background: #dff0ff;
     color: #075f9f;
 }
+
+.dashboard-product-request-panel, .section-product-request-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;    
+}
+
+
+
+@media (max-width: 640px) {
+    .dashboard-product-request-panel, .section-product-request-panel {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 1100px) {
+    .section-product-request-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+.dashboard-product-request-form-card,
+.dashboard-product-request-list-card {
+    height: 450px;
+    max-height: 450px;
+    overflow: hidden;
+}
+
+
+
+
+
 
 /*Dashboard admin*/

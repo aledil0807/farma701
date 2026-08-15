@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Reporte mensual de productos controlados</title>
@@ -22,9 +23,11 @@
 
         .pdf-section {
             margin-bottom: 28px;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
-        .pdf-section + .pdf-section {
+        .pdf-section+.pdf-section {
             padding-top: 16px;
             border-top: 1.2px solid #000;
         }
@@ -175,6 +178,22 @@
             : now()->subMonth()->locale('es')->translatedFormat('F Y');
 
         $logoPath = public_path('assets/img/Logo.png');
+
+        $categoryMovementTexts = [
+            'Psicotrópicos' => 'Movimiento de las Existencias de Sustancias Psicotrópicas de Récipe Corriente (Art. 27 y 28 Ley Orgánica Sobre Sustancias Estupefacientes y Psicotrópicas) durante el mes:',
+
+            'Estupefacientes' => 'Movimiento de las Existencias de Sustancias Estupefacientes de Récipe Violeta (Art. 27 y 28 Ley Orgánica Sobre Sustancias Estupefacientes y Psicotrópicas) durante el mes:',
+
+            'Codeínas y sus sales' => 'Relación de Codeínas y sus Sales durante el mes:',
+
+            'Misoprostol' => 'Relación de Misoprostol durante el mes:',
+
+            'Oxazepam' => 'Relación de Oxazepam durante el mes:',
+
+            'Morfina' => 'Relación de Morfina durante el mes:',
+
+            'Fentanilo' => 'Relación de Fentanilo durante el mes:',
+        ];
     @endphp
 
     <div class="pdf-page">
@@ -221,10 +240,12 @@
                         Con el permiso de funcionamiento registrado bajo el N° 194-BOL
                     </p>
 
+                    @php
+                        $movementText = $categoryMovementTexts[$category] ?? 'Movimiento de las Existencias de Productos Controlados durante el mes:';
+                    @endphp
+
                     <p class="pdf-legal-text">
-                        Movimiento de las existencias de
-                        <strong>{{ $category }}</strong>
-                        durante el mes:
+                        {{ $movementText }}
                         <strong>{{ $movementMonth }}</strong>
                     </p>
                 </header>
@@ -268,4 +289,5 @@
         @endforeach
     </div>
 </body>
+
 </html>

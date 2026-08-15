@@ -225,7 +225,7 @@ $catalogBlocks = [
           </div>
         </div>
       </div>
-      <!-- <x-floating-cart /> -->
+      <x-floating-cart /> 
     </section>
 
     <!--<section class="catalog section-space section-divider-top section-divider-bottom">

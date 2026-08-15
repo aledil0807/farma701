@@ -6,7 +6,7 @@
                     $priceBs = $exchangeRate > 0 ? $product->price * $exchangeRate : null;
                 @endphp
 
-                <a class="product-card" wire:key="product-card-{{ $this->getId() }}-{{ $product->id }}">
+                <div class="product-card" wire:key="product-card-{{ $this->getId() }}-{{ $product->id }}">
                     @if($product->is_controlled)
                         <div class="product-card__controlled" tabindex="0" title="Este producto requiere récipe.">
                             <span class="product-card__controlled-dot"></span>
@@ -40,7 +40,7 @@
                             $ {{ number_format($product->price, 2, '.', ',') }}
                         </p>
 
-                        <div x-data="cartControlFromAttributes($el)" data-product-id="{{ $product->id }}"
+                        <div x-data="cartControlFromAttributes($el)" wire:ignore data-product-id="{{ $product->id }}"
                             data-initial-quantity="{{ app(\App\Services\CartService::class)->getProductQuantity($product->id) }}"
                             data-max-stock="{{ (int) ($product->cantidad ?? 0) }}" data-product-name="{{ e($product->name) }}"
                             data-add-url="{{ route('cart.ajax.add', $product->id) }}"
@@ -62,7 +62,7 @@
                             </template>
                         </div>
                     </div>
-                </a>
+                </div>
             @empty
                 <p class="catalog-empty">No hay productos del mes seleccionados.</p>
             @endforelse
@@ -113,7 +113,7 @@
                             $priceBs = $exchangeRate > 0 ? $product->price * $exchangeRate : null;
                         @endphp
 
-                        <a class="product-card wire:key="product-card-{{ $this->getId() }}-{{ $product->id }}"">
+                        <div class="product-card" wire:key="catalog-product-card-{{ $this->getId() }}-{{ $product->id }}">
                             @if($product->is_controlled)
                                 <div class="product-card__controlled" tabindex="0" title="Este producto requiere récipe.">
                                     <span class="product-card__controlled-dot"></span>
@@ -136,18 +136,18 @@
                                 </p>
 
                                 @php
-                                $stock = (int) ($product->cantidad ?? 0);
+                                    $stock = (int) ($product->cantidad ?? 0);
 
-                                if ($stock <= 0) {
-                                    $stockClass = 'is-unavailable';
-                                    $stockText = 'No disponible';
-                                } elseif ($stock <= 3) {
-                                    $stockClass = 'is-low-stock';
-                                    $stockText = 'Pocas unidades';
-                                } else {
-                                    $stockClass = 'is-available';
-                                    $stockText = '¡Disponible!';
-                                }
+                                    if ($stock <= 0) {
+                                        $stockClass = 'is-unavailable';
+                                        $stockText = 'No disponible';
+                                    } elseif ($stock <= 3) {
+                                        $stockClass = 'is-low-stock';
+                                        $stockText = 'Pocas unidades';
+                                    } else {
+                                        $stockClass = 'is-available';
+                                        $stockText = '¡Disponible!';
+                                    }
                                 @endphp
 
                                 <span class="product-card__status {{ $stockClass }}">
@@ -161,7 +161,9 @@
                                     $ {{ number_format($product->price, 2, '.', ',') }}
                                 </p>
 
-                                <div x-data="cartControlFromAttributes($el)" data-product-id="{{ $product->id }}" wire:key="product-card-{{ $this->getId() }}-{{ $product->id }}"
+                                <div x-data="cartControlFromAttributes($el)"
+                                    wire:key="catalog-cart-control-{{ $this->getId() }}-{{ $product->id }}"
+                                    data-product-id="{{ $product->id }}"
                                     data-initial-quantity="{{ app(\App\Services\CartService::class)->getProductQuantity($product->id) }}"
                                     data-max-stock="{{ (int) ($product->cantidad ?? 0) }}"
                                     data-product-name="{{ e($product->name) }}"
@@ -169,24 +171,24 @@
                                     data-increment-url="{{ route('cart.ajax.increment', $product->id) }}"
                                     data-decrement-url="{{ route('cart.ajax.decrement', $product->id) }}"
                                     class="cart-inline-control">
-                                    <template x-if="quantity <= 0">
-                                        <button type="button" class="product-card__button" @click="add()">
-                                            Agregar al carrito
-                                        </button>
-                                    </template>
+                                    <button type="button" class="product-card__button" x-show="quantity <= 0" @click="add()">
+                                        Agregar al carrito
+                                    </button>
 
-                                    <template x-if="quantity > 0">
-                                        <div class="product-qty-control">
-                                            <button type="button" class="product-qty-control__btn"
-                                                @click="decrement()">-</button>
-                                            <span class="product-qty-control__value" x-text="quantity"></span>
-                                            <button type="button" class="product-qty-control__btn"
-                                                @click="increment()">+</button>
-                                        </div>
-                                    </template>
+                                    <div class="product-qty-control" x-show="quantity > 0" style="display: none;">
+                                        <button type="button" class="product-qty-control__btn" @click="decrement()">
+                                            -
+                                        </button>
+
+                                        <span class="product-qty-control__value" x-text="quantity"></span>
+
+                                        <button type="button" class="product-qty-control__btn" @click="increment()">
+                                            +
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </a>
+                        </div>
                     @empty
                         <p class="catalog-empty">No se encontraron productos.</p>
                     @endforelse
