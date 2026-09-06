@@ -135,6 +135,7 @@ class CartController extends Controller
             'efectivo_usd' => 'Efectivo USD',
             'efectivo_bs' => 'Efectivo Bs',
             'tarjeta' => 'Tarjeta de crédito/débito',
+            'cashea' => 'Cashea',
         ];
 
         $message = [];

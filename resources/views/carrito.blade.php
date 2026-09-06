@@ -212,6 +212,7 @@
                             <option value="tarjeta" {{ old('payment_method') === 'tarjeta' ? 'selected' : '' }}>Tarjeta de
                                 crédito/débito</option>
                             <option value="zelle" {{ old('payment_method') === 'zelle' ? 'selected' : '' }}>Zelle</option>
+                            <option value="cashea" {{ old('payment_method') === 'cashea' ? 'selected' : '' }}>Cashea</option>
                         </select>
                     </div>
                     <div class="cart-field">

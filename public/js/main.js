@@ -27,9 +27,43 @@ document.addEventListener("alpine:init", () => {
     });
 });
 
+window.dispatchCartSnapshotSync = function (items = []) {
+    const quantities = {};
+
+    items.forEach((item) => {
+        const productId = Number(item.product_id || item.id || 0);
+
+        if (!productId) {
+            return;
+        }
+
+        quantities[productId] = Number(item.quantity || 0);
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("cart-snapshot-sync", {
+            detail: {
+                quantities,
+            },
+        }),
+    );
+};
+
+window.dispatchCartProductQuantitySync = function (productId, quantity) {
+    window.dispatchEvent(
+        new CustomEvent("cart-product-quantity-sync", {
+            detail: {
+                productId: Number(productId || 0),
+                quantity: Number(quantity || 0),
+            },
+        }),
+    );
+};
+
 window.floatingCart = function (config) {
     return {
         open: false,
+        ready: false,
         step: "summary",
         loading: false,
         processing: false,
@@ -58,13 +92,16 @@ window.floatingCart = function (config) {
         lastServerTotals: null,
 
         async init() {
-            await this.loadCart(false);
+            try {
+                await this.loadCart(false);
+            } finally {
+                this.ready = true;
+            }
 
             window.addEventListener("floating-cart-refresh", async () => {
                 await this.loadCart(false);
             });
         },
-
         async toggle() {
             this.open = !this.open;
 
@@ -132,6 +169,8 @@ window.floatingCart = function (config) {
             ) {
                 Alpine.store("cart").forceSync(this.totals.units_count);
             }
+
+            window.dispatchCartSnapshotSync(this.items);
         },
 
         recalculateTotals() {
@@ -164,6 +203,7 @@ window.floatingCart = function (config) {
             if (window.Alpine?.store("cart")) {
                 Alpine.store("cart").forceSync(unitsCount);
             }
+            window.dispatchCartSnapshotSync(this.items);
         },
 
         syncWithServerSnapshot() {
@@ -185,6 +225,7 @@ window.floatingCart = function (config) {
                     this.lastServerTotals.units_count,
                 );
             }
+            window.dispatchCartSnapshotSync(this.items);
         },
 
         findItem(productId) {
@@ -420,6 +461,54 @@ window.cartControl = function (config) {
 
         pendingOps: [],
         processing: false,
+        snapshotSyncHandler: null,
+        productSyncHandler: null,
+
+        init() {
+            this.snapshotSyncHandler = (event) => {
+                const quantities = event.detail?.quantities || {};
+                const syncedQuantity = Number(quantities[this.productId] || 0);
+
+                this.serverQuantity = syncedQuantity;
+                this.pendingDelta = 0;
+            };
+
+            this.productSyncHandler = (event) => {
+                const productId = Number(event.detail?.productId || 0);
+
+                if (productId !== Number(this.productId)) {
+                    return;
+                }
+
+                this.serverQuantity = Number(event.detail?.quantity || 0);
+                this.pendingDelta = 0;
+            };
+
+            window.addEventListener(
+                "cart-snapshot-sync",
+                this.snapshotSyncHandler,
+            );
+            window.addEventListener(
+                "cart-product-quantity-sync",
+                this.productSyncHandler,
+            );
+        },
+
+        destroy() {
+            if (this.snapshotSyncHandler) {
+                window.removeEventListener(
+                    "cart-snapshot-sync",
+                    this.snapshotSyncHandler,
+                );
+            }
+
+            if (this.productSyncHandler) {
+                window.removeEventListener(
+                    "cart-product-quantity-sync",
+                    this.productSyncHandler,
+                );
+            }
+        },
 
         get quantity() {
             return Math.max(0, this.serverQuantity + this.pendingDelta);
@@ -486,6 +575,10 @@ window.cartControl = function (config) {
                         data.quantity ?? this.serverQuantity,
                     );
                     this.pendingDelta -= op.delta;
+                    window.dispatchCartProductQuantitySync(
+                        this.productId,
+                        this.serverQuantity,
+                    );
 
                     if (data.totals?.units_count !== undefined) {
                         Alpine.store("cart").confirm(
@@ -2116,4 +2209,387 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 });
 
+window.accountingDailySummary = function ({ dataUrl, initialDate }) {
+    return {
+        selectedDate: initialDate,
+        loading: false,
+        error: "",
+        summaryRows: [],
+        closureRows: [],
+        closuresCount: 0,
+        totals: {
+            facturado_bs: 0,
+            entregado_bs: 0,
+            difference_bs: 0,
+            transactions_count: 0,
+        },
 
+        get formattedDate() {
+            if (!this.selectedDate) {
+                return "";
+            }
+
+            const parts = this.selectedDate.split("-");
+
+            if (parts.length !== 3) {
+                return this.selectedDate;
+            }
+
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        },
+
+        async loadSummary() {
+            if (!this.selectedDate) {
+                return;
+            }
+
+            this.loading = true;
+            this.error = "";
+
+            try {
+                const url = new URL(dataUrl, window.location.origin);
+                url.searchParams.set("date", this.selectedDate);
+
+                const response = await fetch(url.toString(), {
+                    method: "GET",
+                    headers: {
+                        Accept: "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error("No se pudo cargar el resumen.");
+                }
+
+                const data = await response.json();
+
+                this.summaryRows = data.summary_rows || [];
+                this.closureRows = data.closure_rows || [];
+                this.closuresCount = data.closures_count || 0;
+                this.totals = data.totals || {
+                    facturado_bs: 0,
+                    entregado_bs: 0,
+                    difference_bs: 0,
+                    transactions_count: 0,
+                };
+            } catch (error) {
+                this.error =
+                    "No se pudo cargar el resumen. Intenta nuevamente.";
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        formatBs(value) {
+            return (
+                "Bs. " +
+                Number(value || 0).toLocaleString("es-VE", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                })
+            );
+        },
+
+        differenceClass(value) {
+            const number = Number(value || 0);
+
+            if (number < 0) {
+                return "accounting-difference-negative";
+            }
+
+            if (number > 0) {
+                return "accounting-difference-positive";
+            }
+
+            return "";
+        },
+    };
+};
+
+window.accountingMetricsDashboard = function ({
+    dataUrl,
+    initialFrom,
+    initialTo,
+}) {
+    return {
+        period: "month",
+        from: initialFrom,
+        to: initialTo,
+        cashierId: "all",
+        loading: false,
+        error: "",
+
+        summary: {
+            closures_count: 0,
+            total_facturado_bs: 0,
+            total_entregado_bs: 0,
+            total_difference_bs: 0,
+            total_transactions: 0,
+            average_ticket_bs: 0,
+            best_cashier: "—",
+        },
+
+        cashierRows: [],
+        dailyRows: [],
+        paymentMethodRows: [],
+
+        charts: {
+            cashiers: null,
+            methods: null,
+            daily: null,
+            differences: null,
+        },
+
+        init() {
+            this.loadMetrics();
+        },
+
+        handlePeriodChange() {
+            this.loadMetrics();
+        },
+
+        async loadMetrics() {
+            this.error = "";
+            this.loading = true;
+
+            try {
+                const url = new URL(dataUrl, window.location.origin);
+
+                url.searchParams.set("period", this.period);
+                url.searchParams.set("from", this.from);
+                url.searchParams.set("to", this.to);
+                url.searchParams.set("cashier_id", this.cashierId);
+
+                const response = await fetch(url.toString(), {
+                    method: "GET",
+                    headers: {
+                        Accept: "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error("No se pudieron cargar las métricas.");
+                }
+
+                const data = await response.json();
+
+                this.summary = data.summary || this.summary;
+                this.cashierRows = data.cashier_rows || [];
+                this.dailyRows = data.daily_rows || [];
+                this.paymentMethodRows = data.payment_method_rows || [];
+
+                this.$nextTick(() => {
+                    this.renderCharts();
+                });
+            } catch (error) {
+                this.error =
+                    "No se pudieron cargar las métricas. Intenta nuevamente.";
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        renderCharts() {
+            if (!window.ApexCharts) {
+                return;
+            }
+
+            this.renderCashiersChart();
+            this.renderMethodsChart();
+            this.renderDailyChart();
+            this.renderDifferencesChart();
+        },
+
+        renderCashiersChart() {
+            const categories = this.cashierRows.map((row) => row.cashier_name);
+            const facturado = this.cashierRows.map((row) =>
+                Number(row.facturado_bs || 0),
+            );
+            const entregado = this.cashierRows.map((row) =>
+                Number(row.entregado_bs || 0),
+            );
+
+            const options = {
+                chart: {
+                    type: "bar",
+                    height: 330,
+                    toolbar: { show: false },
+                },
+                series: [
+                    { name: "Facturado", data: facturado },
+                    { name: "Entregado", data: entregado },
+                ],
+                xaxis: {
+                    categories: categories,
+                },
+                dataLabels: {
+                    enabled: false,
+                },
+                tooltip: {
+                    y: {
+                        formatter: (value) => this.formatBs(value),
+                    },
+                },
+                noData: {
+                    text: "Sin datos",
+                },
+            };
+
+            this.mountOrUpdateChart(
+                "cashiers",
+                this.$refs.cashiersChart,
+                options,
+            );
+        },
+
+        renderMethodsChart() {
+            const labels = this.paymentMethodRows.map(
+                (row) => row.payment_method_name,
+            );
+            const series = this.paymentMethodRows.map((row) =>
+                Number(row.facturado_bs || 0),
+            );
+
+            const options = {
+                chart: {
+                    type: "donut",
+                    height: 330,
+                },
+                labels: labels,
+                series: series,
+                tooltip: {
+                    y: {
+                        formatter: (value) => this.formatBs(value),
+                    },
+                },
+                noData: {
+                    text: "Sin datos",
+                },
+            };
+
+            this.mountOrUpdateChart(
+                "methods",
+                this.$refs.methodsChart,
+                options,
+            );
+        },
+
+        renderDailyChart() {
+            const categories = this.dailyRows.map((row) => row.date_label);
+            const facturado = this.dailyRows.map((row) =>
+                Number(row.facturado_bs || 0),
+            );
+            const entregado = this.dailyRows.map((row) =>
+                Number(row.entregado_bs || 0),
+            );
+
+            const options = {
+                chart: {
+                    type: "line",
+                    height: 330,
+                    toolbar: { show: false },
+                },
+                series: [
+                    { name: "Facturado", data: facturado },
+                    { name: "Entregado", data: entregado },
+                ],
+                xaxis: {
+                    categories: categories,
+                },
+                stroke: {
+                    curve: "smooth",
+                    width: 3,
+                },
+                dataLabels: {
+                    enabled: false,
+                },
+                tooltip: {
+                    y: {
+                        formatter: (value) => this.formatBs(value),
+                    },
+                },
+                noData: {
+                    text: "Sin datos",
+                },
+            };
+
+            this.mountOrUpdateChart("daily", this.$refs.dailyChart, options);
+        },
+
+        renderDifferencesChart() {
+            const categories = this.cashierRows.map((row) => row.cashier_name);
+            const differences = this.cashierRows.map((row) =>
+                Number(row.difference_bs || 0),
+            );
+
+            const options = {
+                chart: {
+                    type: "bar",
+                    height: 330,
+                    toolbar: { show: false },
+                },
+                series: [{ name: "Diferencia", data: differences }],
+                xaxis: {
+                    categories: categories,
+                },
+                dataLabels: {
+                    enabled: false,
+                },
+                tooltip: {
+                    y: {
+                        formatter: (value) => this.formatBs(value),
+                    },
+                },
+                noData: {
+                    text: "Sin datos",
+                },
+            };
+
+            this.mountOrUpdateChart(
+                "differences",
+                this.$refs.differencesChart,
+                options,
+            );
+        },
+
+        mountOrUpdateChart(key, element, options) {
+            if (!element) {
+                return;
+            }
+
+            if (this.charts[key]) {
+                this.charts[key].updateOptions(options, true, true);
+                return;
+            }
+
+            this.charts[key] = new ApexCharts(element, options);
+            this.charts[key].render();
+        },
+
+        formatBs(value) {
+            return (
+                "Bs. " +
+                Number(value || 0).toLocaleString("es-VE", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                })
+            );
+        },
+
+        differenceClass(value) {
+            const number = Number(value || 0);
+
+            if (number < 0) {
+                return "accounting-difference-negative";
+            }
+
+            if (number > 0) {
+                return "accounting-difference-positive";
+            }
+
+            return "";
+        },
+    };
+};

@@ -1,16 +1,17 @@
 <div class="floating-cart" x-data="floatingCart({
         detailUrl: '{{ route('cart.ajax.detail') }}',
         checkoutUrl: '{{ route('cart.checkout') }}'
-    })" x-cloak>
+    })">
     <button type="button" class="floating-cart__button" @click="toggle()" aria-label="Abrir carrito">
         <i class="fa-solid fa-cart-shopping"></i>
 
-        <span class="floating-cart__badge" x-show="$store.cart.unitsCount > 0" x-text="$store.cart.unitsCount"></span>
+        <span x-cloak class="floating-cart__badge" x-show="$store.cart.unitsCount > 0"
+            x-text="$store.cart.unitsCount"></span>
     </button>
 
-    <div class="floating-cart__overlay" x-show="open" x-transition.opacity @click="close()"></div>
+    <div x-cloak class="floating-cart__overlay" x-show="open" x-transition.opacity @click="close()"></div>
 
-    <aside class="floating-cart__panel" x-show="open" x-transition @click.stop>
+    <aside x-cloak class="floating-cart__panel" x-show="open" x-transition @click.stop>
         <div class="floating-cart__header">
             <div>
                 <h2 x-text="step === 'summary' ? 'Tu carrito' : 'Datos del cliente'"></h2>
@@ -148,6 +149,7 @@
                             <option value="efectivo_bs">Efectivo Bs</option>
                             <option value="tarjeta">Tarjeta de crédito/débito</option>
                             <option value="zelle">Zelle</option>
+                            <option value="cashea">Cashea</option>
                         </select>
                     </div>
 

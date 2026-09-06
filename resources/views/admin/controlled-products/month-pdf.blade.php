@@ -10,6 +10,10 @@
             box-sizing: border-box;
         }
 
+        @page {
+            margin: 92px 45px 70px 45px;
+        }
+
         body {
             margin: 0;
             font-family: arial, sans-serif;
@@ -18,41 +22,33 @@
         }
 
         .pdf-page {
-            padding: 22px;
+            padding: 0;
         }
 
-        .pdf-section {
-            margin-bottom: 28px;
-            page-break-inside: avoid;
-            break-inside: avoid;
-        }
-
-        .pdf-section+.pdf-section {
-            padding-top: 16px;
-            border-top: 1.2px solid #000;
-        }
-
-        .pdf-header {
-            margin-bottom: 14px;
-            padding-bottom: 10px;
+        .pdf-repeated-header {
+            position: fixed;
+            top: -76px;
+            left: 0;
+            right: 0;
+            height: 68px;
         }
 
         .pdf-brand-table {
             width: auto;
-            margin: 0 0 0 6px;
+            margin: 0 0 0 2px;
             border-collapse: collapse;
         }
 
         .pdf-brand-logo-cell {
-            width: 42px;
-            padding-right: 8px;
+            width: 54px;
+            padding-right: 9px;
             vertical-align: middle;
         }
 
         .pdf-brand-logo-cell img {
-            width: 38px;
+            width: 48px;
             height: auto;
-            max-height: 38px;
+            max-height: 48px;
             object-fit: contain;
         }
 
@@ -63,23 +59,40 @@
 
         .pdf-brand-text-cell h1 {
             margin: 0;
-            font-size: 13px;
-            line-height: 1.1;
+            font-size: 19px;
+            line-height: 1.08;
             color: #000;
             font-weight: bold;
             letter-spacing: 0.03em;
         }
 
         .pdf-brand-text-cell p {
-            margin: 3px 0 0;
-            font-size: 9px;
-            line-height: 1;
+            margin: 2px 0 0;
+            font-size: 12px;
+            line-height: 1.15;
             color: #000;
         }
 
         .pdf-divider {
-            margin: 8px 0 10px;
+            margin: 6px 0 0;
             border-top: 1.2px solid #000;
+        }
+
+        .pdf-category-section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .pdf-category-section + .pdf-category-section {
+            padding-top: 16px;
+            border-top: 1.2px solid #000;
+        }
+
+        .pdf-products-table tr,
+        .pdf-table tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .pdf-official-meta {
@@ -164,6 +177,17 @@
             background: #fff;
             font-size: 10px;
         }
+
+        .pdf-signature-footer {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: -54px;
+            text-align: center;
+            font-size: 16px;
+            line-height: 1.25;
+            color: #000;
+        }
     </style>
 </head>
 
@@ -177,78 +201,104 @@
             ? Carbon::createFromFormat('Y-m', $month)->locale('es')->translatedFormat('F Y')
             : now()->subMonth()->locale('es')->translatedFormat('F Y');
 
-        $logoPath = public_path('assets/img/Logo.png');
+        $movementMonth = mb_strtoupper($movementMonth);
 
-        $categoryMovementTexts = [
-            'Psicotrópicos' => 'Movimiento de las Existencias de Sustancias Psicotrópicas de Récipe Corriente (Art. 27 y 28 Ley Orgánica Sobre Sustancias Estupefacientes y Psicotrópicas) durante el mes:',
+        $logoPath = null;
 
-            'Estupefacientes' => 'Movimiento de las Existencias de Sustancias Estupefacientes de Récipe Violeta (Art. 27 y 28 Ley Orgánica Sobre Sustancias Estupefacientes y Psicotrópicas) durante el mes:',
-
-            'Codeínas y sus sales' => 'Relación de Codeínas y sus Sales durante el mes:',
-
-            'Misoprostol' => 'Relación de Misoprostol durante el mes:',
-
-            'Oxazepam' => 'Relación de Oxazepam durante el mes:',
-
-            'Morfina' => 'Relación de Morfina durante el mes:',
-
-            'Fentanilo' => 'Relación de Fentanilo durante el mes:',
+        $possibleLogoPaths = [
+            base_path('../public_html/assets/img/Logo.png'),
+            base_path('../public_html/asset/img/Logo.png'),
+            public_path('assets/img/Logo.png'),
+            public_path('asset/img/Logo.png'),
         ];
+
+        foreach ($possibleLogoPaths as $possibleLogoPath) {
+            if (file_exists($possibleLogoPath) && is_readable($possibleLogoPath)) {
+                $logoPath = realpath($possibleLogoPath);
+                break;
+            }
+        }
+
+        $logoDataUri = null;
+
+        if ($logoPath) {
+            $mimeType = mime_content_type($logoPath) ?: 'image/png';
+
+            $logoDataUri = 'data:' . $mimeType . ';base64,' . base64_encode(
+                file_get_contents($logoPath)
+            );
+        }
     @endphp
+
+    <div class="pdf-repeated-header">
+        <table class="pdf-brand-table">
+            <tr>
+                <td class="pdf-brand-logo-cell">
+                    @if($logoDataUri)
+                        <img src="{{ $logoDataUri }}" alt="Farmacia 701">
+                    @endif
+                </td>
+
+                <td class="pdf-brand-text-cell">
+                    <h1>FARMACIA 701, C.A.</h1>
+                    <p>RIF: J-30831331-9</p>
+                    <p>Av. 17 de diciembre C/C Calle Madrid, Local # 28, Ciudad Bolívar</p>
+                </td>
+            </tr>
+        </table>
+
+        <div class="pdf-divider"></div>
+    </div>
+
+    <div class="pdf-signature-footer">
+        <strong>Dra. Tania Biutti<br>
+        C.I.: 5.553.831 M.P.P.S.: 6615<br>
+        COLFAR: 466<br>
+        INPREFAR: 061245</strong>
+    </div>
 
     <div class="pdf-page">
         @foreach($categories as $category)
             @php
-                $report = $reportsByCategory->get($category);
+                $report = $reportsByCategory[$category] ?? null;
                 $items = $report ? $report->items : collect();
+
+                $categoryMovementTexts = [
+                    'Psicotrópicos' => 'Movimiento de las Existencias de Sustancias Psicotrópicas de Récipe Corriente (Art. 27 y 28 Ley Orgánica Sobre Sustancias Estupefacientes y Psicotrópicas) durante el mes:',
+                    'Estupefacientes' => 'Movimiento de las Existencias de Sustancias Estupefacientes de Récipe Violeta (Art. 27 y 28 Ley Orgánica Sobre Sustancias Estupefacientes y Psicotrópicas) durante el mes:',
+                    'Codeínas y sus sales' => 'Movimiento de las Existencias de Codeínas y sus Sales durante el mes:',
+                    'Misoprostol' => 'Movimiento de las Existencias de Misoprostol durante el mes:',
+                    'Oxazepam' => 'Movimiento de las Existencias de Oxazepam durante el mes:',
+                    'Morfina' => 'Movimiento de las Existencias de Morfina durante el mes:',
+                    'Fentanilo' => 'Movimiento de las Existencias de Fentanilo durante el mes:',
+                ];
+
+                $movementText = $categoryMovementTexts[$category] ?? 'Movimiento de las Existencias de Productos Controlados durante el mes:';
             @endphp
 
-            <section class="pdf-section">
-                <header class="pdf-header">
-                    <table class="pdf-brand-table">
-                        <tr>
-                            <td class="pdf-brand-logo-cell">
-                                @if(file_exists($logoPath))
-                                    <img src="{{ $logoPath }}" alt="Farmacia 701">
-                                @endif
-                            </td>
+            <section class="pdf-category-section">
+                <table class="pdf-official-meta">
+                    <tr>
+                        <td>
+                            <strong>Establecimiento farmacéutico:</strong>
+                            FARMACIA 701, C.A.
+                        </td>
 
-                            <td class="pdf-brand-text-cell">
-                                <h1>FARMACIA 701, C.A.</h1>
-                                <p>Rif: J-30831331-9</p>
-                            </td>
-                        </tr>
-                    </table>
+                        <td class="pdf-official-meta__date">
+                            <strong>Fecha:</strong>
+                            {{ $reportDate }}
+                        </td>
+                    </tr>
+                </table>
 
-                    <div class="pdf-divider"></div>
+                <p class="pdf-normal-text">
+                    Con el permiso de funcionamiento registrado bajo el N° 194-BOL
+                </p>
 
-                    <table class="pdf-official-meta">
-                        <tr>
-                            <td>
-                                <strong>Establecimiento farmacéutico:</strong>
-                                FARMACIA 701, C.A.
-                            </td>
-
-                            <td class="pdf-official-meta__date">
-                                <strong>Fecha:</strong>
-                                {{ $reportDate }}
-                            </td>
-                        </tr>
-                    </table>
-
-                    <p class="pdf-normal-text">
-                        Con el permiso de funcionamiento registrado bajo el N° 194-BOL
-                    </p>
-
-                    @php
-                        $movementText = $categoryMovementTexts[$category] ?? 'Movimiento de las Existencias de Productos Controlados durante el mes:';
-                    @endphp
-
-                    <p class="pdf-legal-text">
-                        {{ $movementText }}
-                        <strong>{{ $movementMonth }}</strong>
-                    </p>
-                </header>
+                <p class="pdf-legal-text">
+                    {{ $movementText }}
+                    <strong>{{ $movementMonth }}</strong>
+                </p>
 
                 @if($items->isEmpty())
                     <div class="pdf-empty">

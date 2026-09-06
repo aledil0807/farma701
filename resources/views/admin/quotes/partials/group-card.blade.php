@@ -14,7 +14,7 @@
         captureMode = false;
     }, 350);
 ">
-                Ver para captura
+                Descargar Imagen
             </button>
             <p>
                 Subtotal:

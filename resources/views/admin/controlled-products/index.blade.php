@@ -28,16 +28,7 @@
                 @csrf
 
                 <div class="controlled-products-form__grid controlled-products-form__grid--report">
-                    <div class="admin-form__group">
-                        <label class="admin-form__label">Título del reporte</label>
-                        <input
-                            type="text"
-                            name="title"
-                            value="{{ old('title') }}"
-                            class="admin-form__input-text"
-                            placeholder="Ej: Reporte productos controlados"
-                        >
-                    </div>
+                    
 
                     <div class="admin-form__group">
                         <label class="admin-form__label">Mes del reporte</label>

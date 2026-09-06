@@ -19,14 +19,16 @@
             unitsCount: {{ app(\App\Services\CartService::class)->totals()['units_count'] ?? 0 }}
     };
     </script>
-    <script defer src="{{ asset('js/main.js') }}?v={{ $assetVersion }}" ></script>
+    <script defer src="{{ asset('js/main.js') }}?v={{ $assetVersion }}"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @livewireStyles
 </head>
 
 <body>
-    <div x-data="stockToast()" x-show="visible" x-transition class="stock-toast" x-text="message"></div>
+    <div x-cloak style="display: none;" x-data="stockToast()" x-show.important="visible" x-transition
+        class="stock-toast" x-text="message"></div>
     <x-header />
+    <x-floating-cart />
 
     <main>
         <livewire:product-search :initial-search="request('q')" :show-search-header="true" />
@@ -38,8 +40,10 @@
             <p>Av. 17 de diciembre C/C Calle Madrid, Local # 28, Séctor Negro Primero, Parroquia catedral, Frente a la
                 clínica Santa Ana, Ciudad Bolívar - Venezuela.</p>
             <p>¡Somos tus Aliados en Salud!</p>
-            <a href="{{ route('admin.login') }}" aria-label="Carrito" class="cart-link"><p>Farmacia 701, C.A</p></a>
-            
+            <a href="{{ route('admin.login') }}" aria-label="Carrito" class="cart-link">
+                <p>Farmacia 701, C.A</p>
+            </a>
+
         </div>
     </footer>
 

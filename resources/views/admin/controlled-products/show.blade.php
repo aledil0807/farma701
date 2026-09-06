@@ -7,6 +7,7 @@
                 <h1 class="admin-page__title">
                     {{ $report->title ?: 'Reporte de productos controlados' }}
                 </h1>
+
                 <p class="admin-page__subtitle">
                     {{ $report->report_number }}
                     |
@@ -16,9 +17,16 @@
                 </p>
             </div>
 
-            <a href="{{ route('admin.controlled-products.index') }}" class="admin-btn admin-btn--secondary">
-                Volver a reportes
-            </a>
+            @if($report->report_month)
+                <a href="{{ route('admin.controlled-products.month.show', ['month' => $report->report_month]) }}"
+                    class="admin-btn admin-btn--secondary">
+                    Volver al reporte
+                </a>
+            @else
+                <a href="{{ route('admin.controlled-products.index') }}" class="admin-btn admin-btn--secondary">
+                    Atrás
+                </a>
+            @endif
         </div>
 
         @if(session('success'))
@@ -27,98 +35,212 @@
             </div>
         @endif
 
-        <div class="admin-card controlled-products-form-card">
-            <h2 class="controlled-products-card-title">Agregar producto al reporte</h2>
+        @if($errors->any())
+            <div class="admin-alert admin-alert--error">
+                <strong>Revisa la información ingresada.</strong>
 
-            <form method="POST" action="{{ route('admin.controlled-products.items.store', $report) }}"
-                class="controlled-products-form" data-controlled-calculator>
-                @csrf
+                <ul class="admin-alert__list">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
-                <div class="controlled-products-form__grid">
-                    <div class="admin-form__group">
-                        <label class="admin-form__label">Nombre del producto</label>
-                        <input type="text" name="product_name" value="{{ old('product_name') }}"
-                            class="admin-form__input-text" required>
-                    </div>
+        <div class="admin-card controlled-products-form-card controlled-products-config-card" x-data="{
+                                                selected: @js((array) old('selected_products', [])),
+                                                opened: null,
 
-                    <div class="admin-form__group">
-                        <label class="admin-form__label">Droguería</label>
-                        <input type="text" name="drugstore" value="{{ old('drugstore') }}" class="admin-form__input-text">
-                    </div>
+                                                isSelected(code) {
+                                                    return this.selected.includes(code);
+                                                },
 
-                    <div class="admin-form__group">
-                        <label class="admin-form__label">N° de factura</label>
-                        <input type="text" name="invoice_number" value="{{ old('invoice_number') }}"
-                            class="admin-form__input-text">
-                    </div>
+                                                selectProduct(code) {
+                                                    if (!this.isSelected(code)) {
+                                                        this.selected.push(code);
+                                                    }
 
-                    <div class="admin-form__group">
-                        <label class="admin-form__label">Unidades por caja</label>
-                        <input type="number" name="units_per_box" value="{{ old('units_per_box', 1) }}" min="1"
-                            class="admin-form__input-text" data-controlled-units-per-box required>
-                    </div>
+                                                    this.opened = code;
+                                                },
 
-                    <div class="admin-form__group">
-                        <label class="admin-form__label">Cajas recibidas</label>
-                        <input type="number" name="boxes_received" value="{{ old('boxes_received', 0) }}" min="0"
-                            class="admin-form__input-text" data-controlled-boxes>
-                    </div>
+                                                unselectProduct(code) {
+                                                    this.selected = this.selected.filter(item => item !== code);
 
-                    <div class="admin-form__group">
-                        <label class="admin-form__label">Existencia anterior</label>
-                        <input type="number" name="previous_stock" value="{{ old('previous_stock', 0) }}" min="0"
-                            class="admin-form__input-text" data-controlled-previous required>
-                    </div>
+                                                    if (this.opened === code) {
+                                                        this.opened = null;
+                                                    }
+                                                },
 
-                    <div class="admin-form__group">
-                        <label class="admin-form__label">Entradas</label>
-                        <div class="controlled-products-inline-result">
-                            <strong data-controlled-entries-output>0</strong>
+                                                toggleProduct(code) {
+                                                    if (!this.isSelected(code)) {
+                                                        this.selectProduct(code);
+                                                        return;
+                                                    }
+
+                                                    this.opened = this.opened === code ? null : code;
+                                                },
+
+                                                handleCheckbox(code, checked) {
+                                                    if (checked) {
+                                                        this.selectProduct(code);
+                                                        return;
+                                                    }
+
+                                                    this.unselectProduct(code);
+                                                }
+                                            }" @click.outside="opened = null">
+            <div class="controlled-products-table-head">
+                <div>
+                    <h2 class="controlled-products-card-title">Agregar productos por factura</h2>
+                    <p>
+                        Selecciona los productos configurados para esta categoría y registra sus entradas o salidas.
+                    </p>
+                </div>
+            </div>
+
+            @if(count($configuredProducts ?? []) > 0)
+                <form method="POST" action="{{ route('admin.controlled-products.configured-items.store', $report) }}"
+                    class="controlled-products-form">
+                    @csrf
+
+                    <div class="controlled-products-form__grid controlled-products-form__grid--invoice">
+                        <div class="admin-form__group">
+                            <label class="admin-form__label">N° de factura</label>
+                            <input type="text" name="invoice_number" value="{{ old('invoice_number') }}"
+                                class="admin-form__input-text" placeholder="Ej: FAC-000123">
+                        </div>
+
+                        <div class="admin-form__group">
+                            <label class="admin-form__label">Droguería</label>
+                            <input type="text" name="drugstore" value="{{ old('drugstore') }}" class="admin-form__input-text"
+                                placeholder="Ej: Droguería...">
                         </div>
                     </div>
 
-                    <div class="admin-form__group">
-                        <label class="admin-form__label">Salidas</label>
-                        <input type="number" name="exits" value="{{ old('exits', 0) }}" min="0"
-                            class="admin-form__input-text" data-controlled-exits required>
+                    <div class="controlled-products-config-list">
+                        @foreach($configuredProducts as $configuredProduct)
+                            @php
+                                $code = $configuredProduct['code'];
+                                $oldProduct = old('products.' . $code, []);
+                                $defaultUnitsPerBox = $oldProduct['units_per_box'] ?? ($configuredProduct['units_per_box'] ?? 1);
+
+                                $previousStock = (int) ($oldProduct['previous_stock'] ?? ($configuredProduct['previous_stock'] ?? 0));
+                                $existingEntries = (int) ($configuredProduct['existing_entries'] ?? 0);
+                                $existingExits = (int) ($configuredProduct['existing_exits'] ?? 0);
+                                $existingCurrentStock = (int) ($configuredProduct['existing_current_stock'] ?? $previousStock);
+                            @endphp
+
+                            <article class="controlled-products-config-item" :class="{
+                                                                                                                                'is-selected': isSelected(@js($code)),
+                                                                                                                                'is-open': opened === @js($code)
+                                                                                                                            }">
+                                <div class="controlled-products-config-head">
+                                    <label class="controlled-products-config-check" @click.stop>
+                                        <input type="checkbox" name="selected_products[]" value="{{ $code }}"
+                                            :checked="isSelected(@js($code))"
+                                            @change="handleCheckbox(@js($code), $event.target.checked)">
+
+                                        <span class="controlled-products-config-check__box"></span>
+                                    </label>
+
+                                    <button type="button" class="controlled-products-config-title-button"
+                                        @click.stop="toggleProduct(@js($code))">
+                                        <span class="controlled-products-config-check__content">
+                                            <strong>{{ $configuredProduct['name'] }}</strong>
+
+                                        </span>
+                                    </button>
+
+                                    <button type="button" class="controlled-products-config-toggle"
+                                        :disabled="!isSelected(@js($code))" @click.stop="toggleProduct(@js($code))"
+                                        aria-label="Abrir configuración del producto">
+                                        <i class="fa-solid fa-chevron-down" :class="{ 'is-rotated': opened === @js($code) }"></i>
+                                    </button>
+                                </div>
+
+                                <div x-cloak x-show="isSelected(@js($code)) && opened === @js($code)" x-transition
+                                    class="controlled-products-config-details" data-controlled-config-row
+                                    data-config-existing-entries="{{ $existingEntries }}"
+                                    data-config-existing-exits="{{ $existingExits }}" @click.stop>
+                                    <div class="admin-form__group">
+                                        <label class="admin-form__label">Unid. x caja</label>
+                                        <input type="number" name="products[{{ $code }}][units_per_box]"
+                                            value="{{ $defaultUnitsPerBox }}" min="1" class="admin-form__input-text"
+                                            data-config-units>
+                                    </div>
+
+                                    <div class="admin-form__group">
+                                        <label class="admin-form__label">Existencia anterior</label>
+                                        <input type="number" name="products[{{ $code }}][previous_stock]"
+                                            value="{{ $previousStock }}" min="0" class="admin-form__input-text"
+                                            data-config-previous>
+                                    </div>
+
+                                    <div class="admin-form__group">
+                                        <label class="admin-form__label">Cajas recibidas</label>
+                                        <input type="number" name="products[{{ $code }}][boxes_received]"
+                                            value="{{ $oldProduct['boxes_received'] ?? '' }}" min="0" class="admin-form__input-text"
+                                            data-config-boxes>
+                                    </div>
+
+                                    <div class="admin-form__group">
+                                        <label class="admin-form__label">Entradas</label>
+                                        <div class="controlled-products-inline-result">
+                                            <strong data-config-entries>0</strong>
+                                        </div>
+                                    </div>
+
+                                    <div class="admin-form__group">
+                                        <label class="admin-form__label">Cajas salidas</label>
+                                        <input type="number" name="products[{{ $code }}][exits]"
+                                            value="{{ $oldProduct['exits'] ?? '' }}" min="0" class="admin-form__input-text"
+                                            data-config-exit-boxes>
+                                    </div>
+
+                                    <div class="admin-form__group">
+                                        <label class="admin-form__label">Salidas</label>
+                                        <div class="controlled-products-inline-result">
+                                            <strong data-config-exits>0</strong>
+                                        </div>
+                                    </div>
+
+                                    <div class="admin-form__group">
+                                        <label class="admin-form__label">Existencia actual</label>
+                                        <div class="controlled-products-inline-result">
+                                            <strong data-config-current>{{ $previousStock }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                        @endforeach
                     </div>
 
-                    <div class="admin-form__group">
-                        <label class="admin-form__label">Existencia actual</label>
-                        <div class="controlled-products-inline-result">
-                            <strong data-controlled-current>0</strong>
-                        </div>
+                    <div class="controlled-products-form__actions">
+                        <button type="submit" class="admin-btn admin-btn--primary">
+                            <i class="fa-solid fa-plus"></i>
+                            Agregar productos seleccionados
+                        </button>
                     </div>
+                </form>
+            @else
+                <div class="admin-alert admin-alert--warning">
+                    No hay productos configurados para la categoría
+                    <strong>{{ $report->category ?: 'Sin categoría' }}</strong>.
+                    Debes agregarlos primero en el archivo de configuración.
                 </div>
-
-                <div class="controlled-products-form__actions">
-                    <button type="submit" class="admin-btn admin-btn--primary">
-                        Agregar producto
-                    </button>
-                </div>
-            </form>
+            @endif
         </div>
 
         <div class="admin-card controlled-products-table-card">
             <div class="controlled-products-table-head">
                 <div>
                     <h2 class="controlled-products-card-title">Productos registrados</h2>
-                    <p>Estos productos pertenecen únicamente a este reporte.</p>
+                    <p>
+                        Estos productos pertenecen únicamente a este reporte. Las entradas y salidas se acumulan según cada
+                        carga realizada.
+                    </p>
                 </div>
-
-                <button type="submit" form="controlledProductsBulkForm" class="admin-btn admin-btn--primary">
-                    <i class="fa-solid fa-floppy-disk"></i>
-                    Guardar cambios
-                </button>
-
-                
             </div>
-
-            <form id="controlledProductsBulkForm" method="POST"
-                action="{{ route('admin.controlled-products.items.update-bulk', $report) }}">
-                @csrf
-                @method('PUT')
-            </form>
 
             <div class="admin-table-wrapper">
                 <table class="admin-table controlled-products-table">
@@ -126,9 +248,7 @@
                         <tr>
                             <th>Producto</th>
                             <th>Droguería</th>
-                            <th>Factura</th>
-                            <th>Unid. x caja</th>
-                            <th>Cajas</th>
+                            <th>Facturas</th>
                             <th>Entradas</th>
                             <th>Exist. anterior</th>
                             <th>Salidas</th>
@@ -139,58 +259,25 @@
 
                     <tbody>
                         @forelse($report->items as $item)
-                            @php
-                                $updateFormId = 'controlled-product-item-update-' . $item->id;
-                            @endphp
-
-                            <tr data-controlled-calculator>
+                            <tr>
                                 <td>{{ $item->product_name }}</td>
                                 <td>{{ $item->drugstore ?: '—' }}</td>
+                                <td>{{ $item->invoice_number ?: '—' }}</td>
 
                                 <td>
-                                    <input type="text" name="items[{{ $item->id }}][invoice_number]"
-                                        value="{{ $item->invoice_number }}"
-                                        class="admin-form__input-text controlled-products-table-input"
-                                        form="controlledProductsBulkForm" placeholder="Factura">
+                                    <strong>{{ $item->entries }}</strong>
                                 </td>
 
                                 <td>
-                                    <input type="number" name="items[{{ $item->id }}][units_per_box]"
-                                        value="{{ $item->units_per_box ?: 1 }}" min="1"
-                                        class="admin-form__input-text controlled-products-table-input"
-                                        form="controlledProductsBulkForm" data-controlled-units-per-box>
+                                    {{ $item->previous_stock }}
                                 </td>
 
                                 <td>
-                                    <input type="number" name="items[{{ $item->id }}][boxes_received]"
-                                        value="{{ $item->boxes_received ?? 0 }}" min="0"
-                                        class="admin-form__input-text controlled-products-table-input"
-                                        form="controlledProductsBulkForm" data-controlled-boxes>
+                                    <strong>{{ $item->exits }}</strong>
                                 </td>
 
                                 <td>
-                                    <strong data-controlled-entries-output>
-                                        {{ $item->entries }}
-                                    </strong>
-                                </td>
-
-                                <td>
-                                    <span data-controlled-previous-value="{{ $item->previous_stock }}">
-                                        {{ $item->previous_stock }}
-                                    </span>
-                                </td>
-
-                                <td>
-                                    <input type="number" name="items[{{ $item->id }}][exits]"
-                                        value="{{ ($item->units_per_box ?? 1) > 0 ? (int) floor($item->exits / ($item->units_per_box ?: 1)) : $item->exits }}"
-                                        min="0" class="admin-form__input-text controlled-products-table-input"
-                                        form="controlledProductsBulkForm" data-controlled-exits>
-                                </td>
-
-                                <td>
-                                    <strong data-controlled-current>
-                                        {{ $item->current_stock }}
-                                    </strong>
+                                    <strong>{{ $item->current_stock }}</strong>
                                 </td>
 
                                 <td>
@@ -203,12 +290,11 @@
                                             Eliminar
                                         </button>
                                     </form>
-
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="admin-empty-text">
+                                <td colspan="8" class="admin-empty-text">
                                     Este reporte todavía no tiene productos registrados.
                                 </td>
                             </tr>
@@ -221,73 +307,50 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            document.querySelectorAll('[data-controlled-calculator]').forEach(function (calculator) {
-                const unitsInput = calculator.querySelector('[data-controlled-units-per-box]');
-                const boxesInput = calculator.querySelector('[data-controlled-boxes]');
-                const previousInput = calculator.querySelector('[data-controlled-previous]');
-                const previousValueElement = calculator.querySelector('[data-controlled-previous-value]');
-                const exitsInput = calculator.querySelector('[data-controlled-exits]');
-                const entriesOutput = calculator.querySelector('[data-controlled-entries-output]');
-                const currentOutput = calculator.querySelector('[data-controlled-current]');
-                const productNameInput = calculator.querySelector('input[name="product_name"]');
+            document.querySelectorAll('[data-controlled-config-row]').forEach(function (row) {
+                const unitsInput = row.querySelector('[data-config-units]');
+                const previousInput = row.querySelector('[data-config-previous]');
+                const boxesInput = row.querySelector('[data-config-boxes]');
+                const exitBoxesInput = row.querySelector('[data-config-exit-boxes]');
+                const entriesOutput = row.querySelector('[data-config-entries]');
+                const exitsOutput = row.querySelector('[data-config-exits]');
+                const currentOutput = row.querySelector('[data-config-current]');
 
-                if (!unitsInput || !boxesInput || !exitsInput || !entriesOutput || !currentOutput) return;
+                const existingEntries = Number(row.dataset.configExistingEntries || 0);
+                const existingExits = Number(row.dataset.configExistingExits || 0);
 
-                function getPreviousStock() {
-                    if (previousInput) {
-                        return Number(previousInput.value || 0);
-                    }
-
-                    if (previousValueElement) {
-                        return Number(previousValueElement.dataset.controlledPreviousValue || 0);
-                    }
-
-                    return 0;
+                if (!unitsInput || !previousInput || !boxesInput || !exitBoxesInput || !entriesOutput || !exitsOutput) {
+                    return;
                 }
 
-                function calculate() {
+                function calculateConfiguredProduct() {
                     const unitsPerBox = Math.max(1, Number(unitsInput.value || 1));
-                    const boxes = Math.max(0, Number(boxesInput.value || 0));
-                    const previous = getPreviousStock();
-                    const exitBoxes = Math.max(0, Number(exitsInput.value || 0));
+                    const previousStock = Math.max(0, Number(previousInput.value || 0));
+                    const boxesReceived = Math.max(0, Number(boxesInput.value || 0));
+                    const exitBoxes = Math.max(0, Number(exitBoxesInput.value || 0));
 
-                    const entries = unitsPerBox * boxes;
+                    const entries = unitsPerBox * boxesReceived;
                     const exits = unitsPerBox * exitBoxes;
-                    const current = previous + entries - exits;
+
+                    const totalEntries = existingEntries + entries;
+                    const totalExits = existingExits + exits;
+
+                    const currentStock = previousStock + totalEntries - totalExits;
 
                     entriesOutput.textContent = entries;
-                    currentOutput.textContent = current;
+                    exitsOutput.textContent = exits;
+
+                    if (currentOutput) {
+                        currentOutput.textContent = currentStock;
+                    }
                 }
 
-                function detectUnitsFromProductName() {
-                    if (!productNameInput) return;
+                unitsInput.addEventListener('input', calculateConfiguredProduct);
+                boxesInput.addEventListener('input', calculateConfiguredProduct);
+                exitBoxesInput.addEventListener('input', calculateConfiguredProduct);
+                previousInput.addEventListener('input', calculateConfiguredProduct);
 
-                    const currentUnits = Number(unitsInput.value || 1);
-
-                    if (currentUnits > 1) return;
-
-                    const match = productNameInput.value.match(/(?:x|\bpor\b)\s*(\d+)/i);
-
-                    if (!match) return;
-
-                    unitsInput.value = match[1];
-                    calculate();
-                }
-
-                unitsInput.addEventListener('input', calculate);
-                boxesInput.addEventListener('input', calculate);
-                exitsInput.addEventListener('input', calculate);
-
-                if (previousInput) {
-                    previousInput.addEventListener('input', calculate);
-                }
-
-                if (productNameInput) {
-                    productNameInput.addEventListener('input', detectUnitsFromProductName);
-                    productNameInput.addEventListener('change', detectUnitsFromProductName);
-                }
-
-                calculate();
+                calculateConfiguredProduct();
             });
         });
     </script>

@@ -71,7 +71,7 @@ class ControlledProductReportController extends Controller
 
                     $report->items()->create([
                         'product_name' => $previousItem->product_name,
-                        'drugstore' => $previousItem->drugstore,
+                        'drugstore' => null,
                         'invoice_number' => null,
                         'units_per_box' => (int) ($previousItem->units_per_box ?: 1),
                         'boxes_received' => 0,
@@ -99,10 +99,49 @@ class ControlledProductReportController extends Controller
 
     public function show(ControlledProductReport $controlledProduct)
     {
-        $controlledProduct->load('items');
+        $controlledProduct->load([
+            'items' => function ($query) {
+                $query->orderBy('product_name');
+            },
+        ]);
+
+        $currentItemsByProductName = $controlledProduct->items
+            ->keyBy(function ($item) {
+                return mb_strtolower(trim((string) $item->product_name));
+            });
+
+        $configuredProducts = collect($this->configuredProductsForCategory($controlledProduct->category))
+            ->map(function ($product) use ($controlledProduct, $currentItemsByProductName) {
+                $productName = trim((string) ($product['name'] ?? ''));
+                $normalizedProductName = mb_strtolower($productName);
+
+                $currentItem = $currentItemsByProductName->get($normalizedProductName);
+
+                if ($currentItem) {
+                    $product['previous_stock'] = (int) $currentItem->previous_stock;
+                    $product['existing_entries'] = (int) $currentItem->entries;
+                    $product['existing_exits'] = (int) $currentItem->exits;
+                    $product['existing_current_stock'] = (int) $currentItem->current_stock;
+                } else {
+                    $previousStock = $this->previousStockForProduct(
+                        $controlledProduct,
+                        $productName
+                    );
+
+                    $product['previous_stock'] = $previousStock;
+                    $product['existing_entries'] = 0;
+                    $product['existing_exits'] = 0;
+                    $product['existing_current_stock'] = $previousStock;
+                }
+
+                return $product;
+            })
+            ->values()
+            ->all();
 
         return view('admin.controlled-products.show', [
             'report' => $controlledProduct,
+            'configuredProducts' => $configuredProducts,
         ]);
     }
 
@@ -155,15 +194,129 @@ class ControlledProductReportController extends Controller
             ->with('success', 'Producto agregado al reporte correctamente.');
     }
 
+    public function storeConfiguredItems(Request $request, ControlledProductReport $controlledProduct)
+    {
+        $configuredProducts = collect(
+            $this->configuredProductsForCategory($controlledProduct->category)
+        )->keyBy('code');
+
+        $data = $request->validate([
+            'invoice_number' => ['nullable', 'string', 'max:255'],
+            'drugstore' => ['nullable', 'string', 'max:255'],
+
+            'selected_products' => ['required', 'array', 'min:1'],
+            'selected_products.*' => ['required', 'string'],
+
+            'products' => ['nullable', 'array'],
+            'products.*.previous_stock' => ['nullable', 'regex:/^\d+$/'],
+            'products.*.units_per_box' => ['nullable', 'regex:/^\d+$/'],
+            'products.*.boxes_received' => ['nullable', 'regex:/^\d+$/'],
+            'products.*.exits' => ['nullable', 'regex:/^\d+$/'],
+        ], [
+            'selected_products.required' => 'Debes seleccionar al menos un producto.',
+            'selected_products.min' => 'Debes seleccionar al menos un producto.',
+        ]);
+
+        $selectedProducts = collect($data['selected_products']);
+
+        $invalidProducts = $selectedProducts->filter(function ($code) use ($configuredProducts) {
+            return !$configuredProducts->has($code);
+        });
+
+        if ($invalidProducts->isNotEmpty()) {
+            return back()
+                ->withErrors(['selected_products' => 'Uno de los productos seleccionados no pertenece a esta categoría.'])
+                ->withInput();
+        }
+
+        DB::transaction(function () use ($data, $selectedProducts, $configuredProducts, $controlledProduct) {
+            foreach ($selectedProducts as $productCode) {
+                $configuredProduct = $configuredProducts->get($productCode);
+                $productData = $data['products'][$productCode] ?? [];
+
+                $productName = trim((string) $configuredProduct['name']);
+                $manualPreviousStock = $productData['previous_stock'] ?? null;
+
+                $unitsPerBox = max(1, (int) ($productData['units_per_box'] ?? $configuredProduct['units_per_box'] ?? 1));
+                $boxesReceived = max(0, (int) ($productData['boxes_received'] ?? 0));
+                $exitBoxes = max(0, (int) ($productData['exits'] ?? 0));
+
+                $newEntries = $unitsPerBox * $boxesReceived;
+                $newExits = $unitsPerBox * $exitBoxes;
+
+                $newInvoiceNumber = trim((string) ($data['invoice_number'] ?? ''));
+                $newDrugstore = trim((string) ($data['drugstore'] ?? ''));
+
+                $existingItem = $controlledProduct->items()
+                    ->whereRaw('LOWER(TRIM(product_name)) = ?', [mb_strtolower($productName)])
+                    ->first();
+
+                if ($existingItem) {
+                    $previousStock = $manualPreviousStock !== null && $manualPreviousStock !== ''
+                        ? max(0, (int) $manualPreviousStock)
+                        : (int) $existingItem->previous_stock;
+
+                    $totalBoxesReceived = (int) $existingItem->boxes_received + $boxesReceived;
+                    $totalEntries = (int) $existingItem->entries + $newEntries;
+                    $totalExits = (int) $existingItem->exits + $newExits;
+
+                    $existingItem->update([
+                        'drugstore' => $this->mergeTextValues($existingItem->drugstore, $newDrugstore),
+                        'invoice_number' => $this->mergeTextValues($existingItem->invoice_number, $newInvoiceNumber),
+                        'units_per_box' => $unitsPerBox,
+                        'boxes_received' => $totalBoxesReceived,
+                        'pills_received' => 0,
+                        'entries' => $totalEntries,
+                        'exits' => $totalExits,
+                        'current_stock' => ControlledProductReportItem::calculateCurrentStock(
+                            $previousStock,
+                            $totalEntries,
+                            $totalExits
+                        ),
+                    ]);
+
+                    continue;
+                }
+
+                $defaultPreviousStock = $this->previousStockForProduct($controlledProduct, $productName);
+
+                $previousStock = $manualPreviousStock !== null && $manualPreviousStock !== ''
+                    ? max(0, (int) $manualPreviousStock)
+                    : $defaultPreviousStock;
+
+                $controlledProduct->items()->create([
+                    'product_name' => $productName,
+                    'drugstore' => $newDrugstore !== '' ? $newDrugstore : null,
+                    'invoice_number' => $newInvoiceNumber !== '' ? $newInvoiceNumber : null,
+                    'units_per_box' => $unitsPerBox,
+                    'boxes_received' => $boxesReceived,
+                    'pills_received' => 0,
+                    'previous_stock' => $previousStock,
+                    'entries' => $newEntries,
+                    'exits' => $newExits,
+                    'current_stock' => ControlledProductReportItem::calculateCurrentStock(
+                        $previousStock,
+                        $newEntries,
+                        $newExits
+                    ),
+                ]);
+            }
+        });
+
+        return redirect()
+            ->route('admin.controlled-products.show', $controlledProduct)
+            ->with('success', 'Productos seleccionados agregados correctamente.');
+    }
+
     public function updateItems(Request $request, ControlledProductReport $controlledProduct)
     {
         $data = $request->validate([
             'items' => ['required', 'array'],
 
             'items.*.invoice_number' => ['nullable', 'string', 'max:255'],
-            'items.*.units_per_box' => ['required', 'integer', 'min:1'],
-            'items.*.boxes_received' => ['nullable', 'integer', 'min:0'],
-            'items.*.exits' => ['nullable', 'integer', 'min:0'],
+            'products.*.units_per_box' => ['nullable', 'regex:/^\d+$/'],
+            'products.*.boxes_received' => ['nullable', 'regex:/^\d+$/'],
+            'products.*.exits' => ['nullable', 'regex:/^\d+$/'],
         ]);
 
         DB::transaction(function () use ($data, $controlledProduct) {
@@ -334,7 +487,7 @@ class ControlledProductReportController extends Controller
 
                 $report->items()->create([
                     'product_name' => $previousItem->product_name,
-                    'drugstore' => $previousItem->drugstore,
+                    'drugstore' => null,
                     'invoice_number' => null,
                     'units_per_box' => (int) ($previousItem->units_per_box ?: 1),
                     'boxes_received' => 0,
@@ -384,6 +537,83 @@ class ControlledProductReportController extends Controller
                 'success',
                 "Reporte mensual preparado correctamente. Categorías creadas: {$created}. Categorías ya existentes: {$skipped}."
             );
+    }
+
+    private function configuredProductsForCategory(?string $category): array
+    {
+        $category = trim((string) $category);
+
+        return collect(config('controlled_products.' . $category, []))
+            ->filter(function ($product) {
+                return (bool) ($product['is_active'] ?? true);
+            })
+            ->sortBy(function ($product) {
+                return (int) ($product['sort_order'] ?? 0);
+            })
+            ->values()
+            ->all();
+    }
+
+    private function previousStockForProduct(ControlledProductReport $report, string $productName): int
+    {
+        $productName = trim($productName);
+        $category = trim((string) $report->category);
+
+        $previousItem = ControlledProductReportItem::query()
+            ->select('controlled_product_report_items.*')
+            ->join(
+                'controlled_product_reports',
+                'controlled_product_reports.id',
+                '=',
+                'controlled_product_report_items.controlled_product_report_id'
+            )
+            ->whereRaw('LOWER(TRIM(controlled_product_report_items.product_name)) = ?', [
+                mb_strtolower($productName),
+            ])
+            ->whereRaw('LOWER(TRIM(controlled_product_reports.category)) = ?', [
+                mb_strtolower($category),
+            ])
+            ->where(function ($query) use ($report) {
+                if ($report->report_month) {
+                    $query->where('controlled_product_reports.report_month', '<', $report->report_month);
+                } else {
+                    $query->where('controlled_product_reports.id', '<', $report->id);
+                }
+            })
+            ->orderByDesc('controlled_product_reports.report_month')
+            ->orderByDesc('controlled_product_reports.id')
+            ->first();
+
+        return (int) ($previousItem?->current_stock ?? 0);
+    }
+
+    private function mergeTextValues(?string $currentValue, ?string $newValue): ?string
+    {
+        $currentValue = trim((string) $currentValue);
+        $newValue = trim((string) $newValue);
+
+        if ($newValue === '') {
+            return $currentValue !== '' ? $currentValue : null;
+        }
+
+        $values = collect(
+            preg_split('/\s*[,;|]\s*/', $currentValue, -1, PREG_SPLIT_NO_EMPTY)
+        )
+            ->map(fn($value) => trim($value))
+            ->filter()
+            ->values();
+
+        $alreadyExists = $values->contains(function ($value) use ($newValue) {
+            return mb_strtolower($value) === mb_strtolower($newValue);
+        });
+
+        if (!$alreadyExists) {
+            $values->push($newValue);
+        }
+
+        return $values->isNotEmpty()
+            ? $values->implode(', ')
+            : null;
     }
 
 

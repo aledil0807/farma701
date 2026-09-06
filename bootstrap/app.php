@@ -13,6 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function ($middleware) {
         $middleware->alias([
             'admin.auth' => \App\Http\Middleware\AdminAuth::class,
+            'can.access.accounting' => \App\Http\Middleware\EnsureCanAccessAccounting::class,
+            'can.access.metrics' => \App\Http\Middleware\EnsureCanAccessMetrics::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

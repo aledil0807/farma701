@@ -47,10 +47,13 @@ $catalogBlocks = [
 </head>
 
 <body>
-  <div x-data="stockToast()" x-show="visible" x-transition class="stock-toast" x-text="message"></div>
+  <div x-cloak style="display: none;" x-data="stockToast()" x-show.important="visible" x-transition class="stock-toast"
+    x-text="message"></div>
 
   <x-header />
 
+
+  <x-floating-cart />
   <main>
     @if($banners->isNotEmpty())
       <section class="hero-carousel container-reduced" x-data="heroCarousel()" x-init="init()">
@@ -225,7 +228,7 @@ $catalogBlocks = [
           </div>
         </div>
       </div>
-      <x-floating-cart /> 
+      
     </section>
 
     <!--<section class="catalog section-space section-divider-top section-divider-bottom">

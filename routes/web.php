@@ -15,6 +15,9 @@ use App\Http\Controllers\Admin\QuoteController;
 use App\Http\Controllers\Admin\ControlledProductReportController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\CustomerProductRequestController;
+use App\Http\Controllers\Admin\AccountingClosureController;
+use App\Http\Controllers\Admin\CashierController;
+use App\Http\Controllers\Admin\AccountingMetricsController;
 
 
 
@@ -224,6 +227,9 @@ Route::middleware('admin.auth')->prefix('admin')->group(function () {
     Route::post('/productos-controlados/{controlledProduct}/items', [ControlledProductReportController::class, 'storeItem'])
         ->name('admin.controlled-products.items.store');
 
+    Route::post('/productos-controlados/{controlledProduct}/configured-items', [ControlledProductReportController::class, 'storeConfiguredItems'])
+        ->name('admin.controlled-products.configured-items.store');
+
     Route::delete('/productos-controlados/items/{item}', [ControlledProductReportController::class, 'destroyItem'])
         ->name('admin.controlled-products.items.destroy');
 
@@ -235,8 +241,56 @@ Route::middleware('admin.auth')->prefix('admin')->group(function () {
 
     Route::get('/productos-controlados/{controlledProduct}/pdf', [ControlledProductReportController::class, 'exportPdf'])
         ->name('admin.controlled-products.pdf');
+
     Route::post('/recordatorios-productos', [CustomerProductRequestController::class, 'store'])
         ->name('admin.product-requests.store');
+
     Route::patch('/recordatorios-productos/{productRequest}/enviado', [CustomerProductRequestController::class, 'markAsSent'])
         ->name('admin.product-requests.mark-as-sent');
+
+    Route::middleware('can.access.accounting')->group(function () {
+        Route::get('/contaduria/resumen', [AccountingClosureController::class, 'summary'])
+            ->name('admin.accounting.summary');
+
+        Route::get('/contaduria/resumen/datos', [AccountingClosureController::class, 'summaryData'])
+            ->name('admin.accounting.summary.data');
+
+        Route::get('/contaduria/cierres', [AccountingClosureController::class, 'index'])
+            ->name('admin.accounting.closures.index');
+
+        Route::get('/contaduria/cierres/crear', [AccountingClosureController::class, 'create'])
+            ->name('admin.accounting.closures.create');
+
+        Route::post('/contaduria/cierres', [AccountingClosureController::class, 'store'])
+            ->name('admin.accounting.closures.store');
+
+        Route::get('/contaduria/cierres/{accountingClosure}', [AccountingClosureController::class, 'show'])
+            ->name('admin.accounting.closures.show');
+
+        Route::put('/contaduria/cierres/{accountingClosure}', [AccountingClosureController::class, 'update'])
+            ->name('admin.accounting.closures.update');
+
+        Route::delete('/contaduria/cierres/{accountingClosure}', [AccountingClosureController::class, 'destroy'])
+            ->name('admin.accounting.closures.destroy');
+
+        Route::get('/contaduria/cajeros', [CashierController::class, 'index'])
+            ->name('admin.accounting.cashiers.index');
+
+        Route::post('/contaduria/cajeros', [CashierController::class, 'store'])
+            ->name('admin.accounting.cashiers.store');
+
+        Route::patch('/contaduria/cajeros/{cashier}/estado', [CashierController::class, 'toggleStatus'])
+            ->name('admin.accounting.cashiers.toggle-status');
+
+        Route::delete('/contaduria/cajeros/{cashier}', [CashierController::class, 'destroy'])
+            ->name('admin.accounting.cashiers.destroy');
+    });
+
+    Route::middleware('can.access.metrics')->group(function () {
+        Route::get('/metricas', [AccountingMetricsController::class, 'index'])
+            ->name('admin.metrics.index');
+
+        Route::get('/metricas/datos', [AccountingMetricsController::class, 'data'])
+            ->name('admin.metrics.data');
+    });
 });

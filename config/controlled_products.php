@@ -1,0 +1,262 @@
+<?php
+
+return [
+    'Psicotrópicos' => [
+        [
+            'code' => 'alprazolam-05mg',
+            'name' => 'Alprazolam 0.5 mg x 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 1,
+        ],
+        [
+            'code' => 'alprazolam-1mg-X-30-tab',
+            'name' => 'Alprazolam 1 mg X 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 2,
+        ],
+        [
+            'code' => 'alprazolam-1mg X 40 tab alprazolam-1mg X 50 tab',
+            'name' => 'Alprazolam 1 mg X 40 tab Alprazolam 1 mg X 50 tab',
+            'units_per_box' => 40,
+            'is_active' => true,
+            'sort_order' => 3,
+        ],
+        [
+            'code' => 'alprazolam-2mg',
+            'name' => 'Alprazolam 2 mg x 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 4,
+        ],
+        [
+            'code' => 'bromazepam-3mg',
+            'name' => 'Bromazepam 3 mg x 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 5,
+        ],
+        [
+            'code' => 'bromazepam-6mg',
+            'name' => 'Bromazepam 6 mg x 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 6,
+        ],
+        [
+            'code' => 'clonazepam-05mg',
+            'name' => 'Clonazepam 0.5 mg x 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 7,
+        ],
+        [
+            'code' => 'clonazepam-1mg',
+            'name' => 'Clonazepam 1 mg x 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 8,
+        ],
+        [
+            'code' => 'clonazepam-2mg',
+            'name' => 'Clonazepam 2 mg x 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 9,
+        ],
+        [
+            'code' => 'fenobarbital-100mg',
+            'name' => 'Fenobarbital 100 mg x 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 10,
+        ],
+        [
+            'code' => 'fluralema-15mg',
+            'name' => 'Fluralema 15 mg x 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 11,
+        ],
+        [
+            'code' => 'fluralema-30mg',
+            'name' => 'Fluralema 30 mg x 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 12,
+        ],
+        [
+            'code' => 'triazolam-0125mg',
+            'name' => 'Triazolam 0.125 mg x 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 13,
+        ],
+        [
+            'code' => 'triazolam-025mg',
+            'name' => 'Triazolam 0.25 mg x 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 14,
+        ],
+        [
+            'code' => 'zolpidem-10mg-x10-tab',
+            'name' => 'Zolpidem 10 mg x 10 tab',
+            'units_per_box' => 10,
+            'is_active' => true,
+            'sort_order' => 15,
+        ],
+        [
+            'code' => 'zolpidem-10mg-x20-tab',
+            'name' => 'Zolpidem 10 mg x 20 tab',
+            'units_per_box' => 20,
+            'is_active' => true,
+            'sort_order' => 16,
+        ],
+    ],
+
+    'Estupefacientes' => [
+        [
+            'code' => 'diazepam-10mg-2ml',
+            'name' => 'Diazepam 10 mg x 2 ml',
+            'units_per_box' => 1,
+            'is_active' => true,
+            'sort_order' => 1,
+        ],
+        [
+            'code' => 'tramadol-100mg-10ml-gtas',
+            'name' => 'Tramadol 100 mg x 10 ml gtas',
+            'units_per_box' => 1,
+            'is_active' => true,
+            'sort_order' => 2,
+        ],
+        [
+            'code' => 'tramadol-100mg-2ml-amp',
+            'name' => 'Tramadol 100 mg x 2 ml amp',
+            'units_per_box' => 1,
+            'is_active' => true,
+            'sort_order' => 3,
+        ],
+        [
+            'code' => 'tramadol-50mg-x20-tab',
+            'name' => 'Tramadol 50 mg x 20 tab',
+            'units_per_box' => 20,
+            'is_active' => true,
+            'sort_order' => 4,
+        ],
+        [
+            'code' => 'tramadol-100mg-x10-tab',
+            'name' => 'Tramadol 100 mg x 10 tab',
+            'units_per_box' => 10,
+            'is_active' => true,
+            'sort_order' => 5,
+        ],
+        [
+            'code' => 'tramadol-acetaminofen-375-325mg-x10-tab',
+            'name' => 'Tramadol Acetaminofén 37.5-325 mg x 10 tab',
+            'units_per_box' => 10,
+            'is_active' => true,
+            'sort_order' => 6,
+        ],
+        [
+            'code' => 'tramadol-acetaminofen-375-325mg-x20-tab',
+            'name' => 'Tramadol Acetaminofén 37.5-325 mg x 20 tab',
+            'units_per_box' => 20,
+            'is_active' => true,
+            'sort_order' => 7,
+        ],
+        [
+            'code' => 'tramadol-acetaminofen-375-325mg-x50-tab',
+            'name' => 'Tramadol Acetaminofén 37.5-325 mg x 50 tab',
+            'units_per_box' => 50,
+            'is_active' => true,
+            'sort_order' => 8,
+        ],
+        [
+            'code' => 'tramadol-acetaminofen-50-500mg-x20-tab',
+            'name' => 'Tramadol Acetaminofén 50-500 mg x 20 tab',
+            'units_per_box' => 20,
+            'is_active' => true,
+            'sort_order' => 9,
+        ],
+        [
+            'code' => 'tramadol-ketorolaco-10-25mg-1ml-amp',
+            'name' => 'Tramadol Ketorolaco 10-25 mg x 1 ml amp',
+            'units_per_box' => 1,
+            'is_active' => true,
+            'sort_order' => 10,
+        ],
+    ],
+
+    'Codeínas y sus sales' => [
+        [
+            'code' => 'codeina-acetaminofen-25-500mg-x10-tab',
+            'name' => 'Codeína Acetaminofén 25-500 mg x 10 tab',
+            'units_per_box' => 10,
+            'is_active' => true,
+            'sort_order' => 1,
+        ],
+        [
+            'code' => 'codeina-acetaminofen-30-325mg-x10-tab',
+            'name' => 'Codeína Acetaminofén 30-325 mg x 10 tab',
+            'units_per_box' => 10,
+            'is_active' => true,
+            'sort_order' => 2,
+        ],
+        [
+            'code' => 'codeina-clorfeniramina-15-3mg-90ml-jbe',
+            'name' => 'Codeína Clorfeniramina 15-3 mg x 90 ml Jbe',
+            'units_per_box' => 1,
+            'is_active' => true,
+            'sort_order' => 3,
+        ],
+        [
+            'code' => 'codeina-clorfeniramina-15-3mg-120ml-jbe',
+            'name' => 'Codeína Clorfeniramina 15-3 mg x 120 ml Jbe',
+            'units_per_box' => 1,
+            'is_active' => true,
+            'sort_order' => 4,
+        ],
+    ],
+
+    'Misoprostol' => [
+        [
+            'code' => 'misoprostol-200mcg-x4-tab',
+            'name' => 'Misoprostol 200 mcg x 4 tab',
+            'units_per_box' => 4,
+            'is_active' => true,
+            'sort_order' => 1,
+        ],
+    ],
+
+    'Oxazepam' => [
+        [
+            'code' => 'vuscobras-10-10mg-x30-tab',
+            'name' => 'Vuscobras 10-10 mg x 30 tab',
+            'units_per_box' => 30,
+            'is_active' => true,
+            'sort_order' => 1,
+        ],
+    ],
+
+    'Morfina' => [
+        [
+            'code' => 'morfina-10mg-1ml-amp',
+            'name' => 'Morfina 10 mg x 1 ml amp',
+            'units_per_box' => 1,
+            'is_active' => true,
+            'sort_order' => 1,
+        ],
+    ],
+
+    'Fentanilo' => [
+        [
+            'code' => 'fentanilo-05mg-10ml-ampolla',
+            'name' => 'Fentanilo 0.5 mg x 10 ml ampolla',
+            'units_per_box' => 1,
+            'is_active' => true,
+            'sort_order' => 1,
+        ],
+    ],
+];

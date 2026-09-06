@@ -5,23 +5,24 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Laboratory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class LaboratoryController extends Controller
 {
     public function index(Request $request)
-{
-    $search = trim((string) $request->input('search', ''));
+    {
+        $search = trim((string) $request->input('search', ''));
 
-    $laboratories = Laboratory::visible()
-        ->withCount('activeProducts')
-        ->when($search !== '', function ($query) use ($search) {
-            $query->where('name', 'like', '%' . $search . '%');
-        })
-        ->orderBy('name')
-        ->get();
+        $laboratories = Laboratory::visible()
+            ->withCount('activeProducts')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where('name', 'like', '%' . $search . '%');
+            })
+            ->orderBy('name')
+            ->get();
 
-    return view('admin.laboratories.index', compact('laboratories', 'search'));
-}
+        return view('admin.laboratories.index', compact('laboratories', 'search'));
+    }
 
     public function edit(Laboratory $laboratory)
     {
@@ -40,24 +41,45 @@ class LaboratoryController extends Controller
         ];
 
         if ($request->hasFile('logo')) {
-            $oldPath = public_path('storage/laboratories/' . $laboratory->logo_path);
-
             $file = $request->file('logo');
-            $filename = preg_replace('/\s+/', '_', $file->getClientOriginalName());
 
-            //Ruta real en producion: $destination = base_path('../public_html/storage/laboratories');
+            $extension = strtolower($file->getClientOriginalExtension());
+
+            $filename = Str::slug($request->name)
+                . '-'
+                . now()->format('YmdHis')
+                . '-'
+                . Str::random(8)
+                . '.'
+                . $extension;
+
+            // En local:
             $destination = public_path('storage/laboratories');
+
+            // En producción Hostinger, si usas public_html:
+            $publicHtmlPath = base_path('../public_html/storage/laboratories');
+
+            if (is_dir(base_path('../public_html'))) {
+                $destination = $publicHtmlPath;
+            }
 
             if (!is_dir($destination)) {
                 mkdir($destination, 0755, true);
             }
+
+            $oldFilename = $laboratory->logo_path;
+            $oldPath = $oldFilename ? $destination . '/' . $oldFilename : null;
 
             $file->move($destination, $filename);
             @chmod($destination . '/' . $filename, 0644);
 
             $data['logo_path'] = $filename;
 
-            if ($laboratory->logo_path && is_file($oldPath)) {
+            if (
+                $oldPath &&
+                $oldFilename !== $filename &&
+                is_file($oldPath)
+            ) {
                 @unlink($oldPath);
             }
         }
