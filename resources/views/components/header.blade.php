@@ -1,7 +1,11 @@
 <header class="site-header" x-data="{ mobileMenuOpen: false, mobileLabsOpen: false, labsQuery: '' }">
     <div class="topbar">
         <div class="container topbar__content">
-            <p>Farmacia 701 ¡Somos tus aliados en salud!</p>
+            <img src="{{ asset('assets/img/cashea-seeklogo.png') }}" alt="Farmacia 701">
+            <p class="topbar__text">
+                <span>Compra ahora, paga después,</span>
+                <span>en 1 cuota sin intereses</span>
+            </p>
         </div>
     </div>
 

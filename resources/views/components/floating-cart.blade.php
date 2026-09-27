@@ -108,7 +108,63 @@
             </template>
 
             <template x-if="!loading && step === 'checkout'">
-                <form class="floating-cart-form" @submit.prevent="checkout($event)" x-data="{ deliveryType: '' }">
+                <form class="floating-cart-form" x-ref="checkoutForm" @submit.prevent="checkout($event)"
+                    @input="refreshFormValidity()" @change="refreshFormValidity()" x-data="{
+        deliveryType: '',
+        paymentMethod: '',
+        selectionNotice: '',
+        noticeTimeout: null,
+        formIsValid: false,
+
+        refreshFormValidity() {
+            this.$nextTick(() => {
+                this.formIsValid =
+                    this.$refs.checkoutForm.checkValidity()
+                    && this.deliveryType !== ''
+                    && this.paymentMethod !== '';
+            });
+        },
+
+        isDeliveryBlocked(value) {
+            return value === 'delivery' && this.paymentMethod === 'tarjeta';
+        },
+
+        isPaymentBlocked(value) {
+            return value === 'tarjeta' && this.deliveryType === 'delivery';
+        },
+
+        showSelectionNotice(message) {
+            this.selectionNotice = message;
+
+            if (this.noticeTimeout) {
+                clearTimeout(this.noticeTimeout);
+            }
+
+            this.noticeTimeout = setTimeout(() => {
+                this.selectionNotice = '';
+            }, 2800);
+        },
+
+        selectDelivery(value) {
+            if (this.isDeliveryBlocked(value)) {
+                this.showSelectionNotice('No se puede seleccionar este método de entrega en pagos por tarjeta de crédito.');
+                return;
+            }
+
+            this.deliveryType = value;
+            this.refreshFormValidity();
+        },
+
+        selectPayment(value) {
+            if (this.isPaymentBlocked(value)) {
+                this.showSelectionNotice('No se puede seleccionar tarjeta de crédito/débito cuando el método de entrega es Delivery.');
+                return;
+            }
+
+            this.paymentMethod = value;
+            this.refreshFormValidity();
+        }
+    }">
                     <div class="cart-field">
                         <label for="floating_document">Cédula o RIF</label>
                         <input type="text" id="floating_document" name="document" required>
@@ -125,12 +181,23 @@
                     </div>
 
                     <div class="cart-field">
-                        <label for="floating_delivery_type">Tipo de entrega</label>
-                        <select id="floating_delivery_type" name="delivery_type" x-model="deliveryType" required>
-                            <option value="">Seleccionar</option>
-                            <option value="pickup">Retiro en tienda</option>
-                            <option value="delivery">Delivery</option>
-                        </select>
+                        <label>Tipo de entrega</label>
+
+                        <input type="hidden" name="delivery_type" :value="deliveryType">
+
+                        <div class="cart-choice-grid">
+                            <button type="button" class="cart-choice-btn"
+                                :class="{ 'is-active': deliveryType === 'pickup' }" @click="selectDelivery('pickup')">
+                                Retiro en tienda
+                            </button>
+
+                            <button type="button" class="cart-choice-btn" :class="{
+                'is-active': deliveryType === 'delivery',
+                'is-blocked': isDeliveryBlocked('delivery')
+            }" @click="selectDelivery('delivery')">
+                                Delivery
+                            </button>
+                        </div>
                     </div>
 
                     <div class="cart-field" x-show="deliveryType === 'delivery'" x-transition>
@@ -140,17 +207,52 @@
                     </div>
 
                     <div class="cart-field">
-                        <label for="floating_payment_method">Método de pago</label>
-                        <select id="floating_payment_method" name="payment_method" required>
-                            <option value="">Seleccionar</option>
-                            <option value="pago_movil">Pago móvil</option>
-                            <option value="transferencia">Transferencia</option>
-                            <option value="efectivo_usd">Efectivo USD</option>
-                            <option value="efectivo_bs">Efectivo Bs</option>
-                            <option value="tarjeta">Tarjeta de crédito/débito</option>
-                            <option value="zelle">Zelle</option>
-                            <option value="cashea">Cashea</option>
-                        </select>
+                        <label>Método de pago</label>
+
+                        <input type="hidden" name="payment_method" :value="paymentMethod">
+
+                        <div class="cart-choice-grid cart-choice-grid--payments">
+                            <button type="button" class="cart-choice-btn"
+                                :class="{ 'is-active': paymentMethod === 'pago_movil' }"
+                                @click="selectPayment('pago_movil')">
+                                Pago móvil
+                            </button>
+
+                            <button type="button" class="cart-choice-btn"
+                                :class="{ 'is-active': paymentMethod === 'transferencia' }"
+                                @click="selectPayment('transferencia')">
+                                Transferencia
+                            </button>
+
+                            <button type="button" class="cart-choice-btn"
+                                :class="{ 'is-active': paymentMethod === 'efectivo_usd' }"
+                                @click="selectPayment('efectivo_usd')">
+                                Efectivo USD
+                            </button>
+
+                            <button type="button" class="cart-choice-btn"
+                                :class="{ 'is-active': paymentMethod === 'efectivo_bs' }"
+                                @click="selectPayment('efectivo_bs')">
+                                Efectivo Bs
+                            </button>
+
+                            <button type="button" class="cart-choice-btn" :class="{
+                'is-active': paymentMethod === 'tarjeta',
+                'is-blocked': isPaymentBlocked('tarjeta')
+            }" @click="selectPayment('tarjeta')">
+                                Tarjeta de crédito/débito
+                            </button>
+
+                            <button type="button" class="cart-choice-btn"
+                                :class="{ 'is-active': paymentMethod === 'zelle' }" @click="selectPayment('zelle')">
+                                Zelle
+                            </button>
+
+                            <button type="button" class="cart-choice-btn"
+                                :class="{ 'is-active': paymentMethod === 'cashea' }" @click="selectPayment('cashea')">
+                                Cashea
+                            </button>
+                        </div>
                     </div>
 
                     <div class="cart-field">
@@ -158,7 +260,8 @@
                         <input type="text" id="floating_attention_code" name="attention_code" placeholder="Opcional">
                     </div>
 
-                    <button type="submit" class="checkout-btn" :disabled="processing">
+                    <button type="submit" class="checkout-btn"
+                        :disabled="processing || !formIsValid">
                         <span x-show="!processing">Procesar compra</span>
                         <span x-show="processing">Procesando...</span>
                     </button>

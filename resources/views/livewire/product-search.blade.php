@@ -17,7 +17,8 @@
                     @endif
 
                     <div class="product-card__image">
-                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}">
+                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}"
+                            onerror="this.onerror=null;this.src='{{ $product->default_image_url }}';">
                     </div>
 
                     <div class="product-card__body">
@@ -123,7 +124,8 @@
                                 </div>
                             @endif
                             <div class="product-card__image">
-                                <img src="{{ $product->image_url }}" alt="{{ $product->name }}">
+                                <img src="{{ $product->image_url }}" alt="{{ $product->name }}"
+                                    onerror="this.onerror=null;this.src='{{ $product->default_image_url }}';">
                             </div>
 
                             <div class="product-card__body">

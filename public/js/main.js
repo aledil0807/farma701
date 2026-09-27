@@ -921,27 +921,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const SCROLL_DOWN_THRESHOLD = 55;
     const SCROLL_UP_THRESHOLD = 8;
-    const DESKTOP_BREAKPOINT = 769;
 
     let isScrolled = false;
     let ticking = false;
 
-    function isDesktop() {
-        return window.innerWidth >= DESKTOP_BREAKPOINT;
-    }
-
-    function resetHeaderState() {
-        isScrolled = false;
-        siteHeader.classList.remove("is-scrolled");
-    }
-
     function updateHeaderState() {
-        if (!isDesktop()) {
-            resetHeaderState();
-            ticking = false;
-            return;
-        }
-
         const y = window.scrollY || window.pageYOffset;
 
         if (!isScrolled && y > SCROLL_DOWN_THRESHOLD) {
@@ -962,18 +946,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function onResize() {
-        if (!isDesktop()) {
-            resetHeaderState();
-        } else {
-            updateHeaderState();
-        }
-    }
-
     updateHeaderState();
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onResize);
+    window.addEventListener("resize", updateHeaderState);
 });
 
 window.heroCarousel = function () {
@@ -2590,6 +2566,227 @@ window.accountingMetricsDashboard = function ({
             }
 
             return "";
+        },
+    };
+};
+
+window.dashboardWebMetricsCharts = function ({
+    dailyOrders = [],
+    laboratorySales = [],
+}) {
+    return {
+        charts: {
+            dailyOrders: null,
+            laboratorySales: null,
+        },
+
+        init() {
+            this.$nextTick(() => {
+                this.renderCharts();
+            });
+        },
+
+        renderCharts() {
+            if (!window.ApexCharts) {
+                console.warn("ApexCharts no está cargado.");
+                return;
+            }
+
+            this.renderDailyOrdersChart();
+            this.renderLaboratorySalesChart();
+        },
+
+        renderDailyOrdersChart() {
+            if (!this.$refs.dailyOrdersChart) {
+                return;
+            }
+
+            const seriesData = dailyOrders.map((row) => {
+                return {
+                    x: new Date(`${row.date}T00:00:00`).getTime(),
+                    y: Number(row.orders_count || 0),
+                };
+            });
+
+            const lastPoint = seriesData.length
+                ? seriesData[seriesData.length - 1].x
+                : new Date().getTime();
+
+            const initialVisibleDays = 30;
+            const oneDayMs = 24 * 60 * 60 * 1000;
+
+            const options = {
+                chart: {
+                    type: "bar",
+                    height: 340,
+                    toolbar: {
+                        show: true,
+                        tools: {
+                            download: false,
+                            selection: true,
+                            zoom: true,
+                            zoomin: true,
+                            zoomout: true,
+                            pan: true,
+                            reset: true,
+                        },
+                        autoSelected: "pan",
+                    },
+                    zoom: {
+                        enabled: true,
+                        type: "x",
+                        autoScaleYaxis: true,
+                        allowMouseWheelZoom: false,
+                    },
+                },
+
+                series: [
+                    {
+                        name: "Pedidos",
+                        data: seriesData,
+                    },
+                ],
+
+                plotOptions: {
+                    bar: {
+                        borderRadius: 5,
+                        columnWidth: "70%",
+                    },
+                },
+
+                xaxis: {
+                    type: "datetime",
+                    min: lastPoint - initialVisibleDays * oneDayMs,
+                    max: lastPoint,
+                    labels: {
+                        datetimeUTC: false,
+                        format: "dd/MM",
+                    },
+                },
+
+                yaxis: {
+                    min: 0,
+                    forceNiceScale: true,
+                    labels: {
+                        formatter: function (value) {
+                            return Math.round(value);
+                        },
+                    },
+                },
+
+                dataLabels: {
+                    enabled: false,
+                },
+
+                tooltip: {
+                    x: {
+                        format: "dd/MM/yyyy",
+                    },
+                    y: {
+                        formatter: function (value) {
+                            return `${Math.round(value)} pedidos`;
+                        },
+                    },
+                },
+
+                noData: {
+                    text: "Sin pedidos registrados",
+                },
+            };
+
+            this.mountOrUpdateChart(
+                "dailyOrders",
+                this.$refs.dailyOrdersChart,
+                options,
+            );
+        },
+
+        renderLaboratorySalesChart() {
+            if (!this.$refs.laboratorySalesChart) {
+                return;
+            }
+
+            const categories = laboratorySales.map(
+                (row) => row.laboratory_name,
+            );
+
+            const units = laboratorySales.map((row) =>
+                Number(row.units_count || 0),
+            );
+
+            const chartHeight = Math.max(360, laboratorySales.length * 46);
+
+            const options = {
+                chart: {
+                    type: "bar",
+                    height: chartHeight,
+                    toolbar: {
+                        show: false,
+                    },
+                },
+                plotOptions: {
+                    bar: {
+                        horizontal: true,
+                        borderRadius: 6,
+                    },
+                },
+                series: [
+                    {
+                        name: "Unidades",
+                        data: units,
+                    },
+                ],
+                xaxis: {
+                    categories: categories,
+                    labels: {
+                        formatter: function (value) {
+                            return Math.round(value);
+                        },
+                    },
+                },
+                dataLabels: {
+                    enabled: false,
+                },
+                tooltip: {
+                    y: {
+                        formatter: function (value, context) {
+                            const row =
+                                laboratorySales[context.dataPointIndex] || {};
+
+                            const totalUsd = Number(row.total_usd || 0).toFixed(
+                                2,
+                            );
+
+                            const ordersCount = Number(row.orders_count || 0);
+
+                            return `${Math.round(value)} und. · ${ordersCount} pedidos · $ ${totalUsd}`;
+                        },
+                    },
+                },
+                noData: {
+                    text: "Sin ventas por laboratorio",
+                },
+            };
+
+            this.mountOrUpdateChart(
+                "laboratorySales",
+                this.$refs.laboratorySalesChart,
+                options,
+            );
+        },
+
+        mountOrUpdateChart(key, element, options) {
+            if (!element) {
+                return;
+            }
+
+            if (this.charts[key]) {
+                this.charts[key].updateOptions(options, true, true);
+                return;
+            }
+
+            this.charts[key] = new ApexCharts(element, options);
+            this.charts[key].render();
         },
     };
 };

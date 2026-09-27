@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Services\CartService;
 use App\Services\ExchangeRateService;
+use App\Models\WebOrder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
@@ -86,6 +88,20 @@ class CartController extends Controller
             'delivery_address' => 'dirección de envío',
             'payment_method' => 'método de pago',
         ]);
+
+        if (
+            ($data['delivery_type'] ?? null) === 'delivery' &&
+            ($data['payment_method'] ?? null) === 'tarjeta'
+        ) {
+            return response()->json([
+                'message' => 'No se puede seleccionar Delivery con pago por tarjeta de crédito/débito.',
+                'errors' => [
+                    'payment_method' => [
+                        'No se puede seleccionar tarjeta de crédito/débito cuando el método de entrega es Delivery.',
+                    ],
+                ],
+            ], 422);
+        }
 
         $stockErrors = $cartService->validateStock();
 
@@ -203,6 +219,8 @@ class CartController extends Controller
 
         $cartService->clear();
 
+        $this->recordWebOrderFromCart($items, $cart, $totals);
+
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
@@ -211,6 +229,8 @@ class CartController extends Controller
         }
         return redirect()->away($whatsAppUrl);
     }
+
+
 
     public function ajaxAdd(Request $request, Product $product, CartService $cartService, ExchangeRateService $exchangeRateService)
     {
@@ -336,5 +356,104 @@ class CartController extends Controller
             'totals' => $cartService->totals($exchangeRate),
             'exchange_rate' => $exchangeRate,
         ]);
+    }
+
+    private function recordWebOrderFromCart(array $data, array $cart, array $totals): WebOrder
+    {
+        $items = collect($cart['items'] ?? $cart)
+            ->filter(function ($item) {
+                $productId = (int) ($item['product_id'] ?? $item['id'] ?? 0);
+                $quantity = (int) ($item['quantity'] ?? 0);
+
+                return $productId > 0 && $quantity > 0;
+            })
+            ->values();
+
+        $productIds = $items
+            ->map(fn($item) => (int) ($item['product_id'] ?? $item['id']))
+            ->unique()
+            ->values();
+
+        $products = Product::with('laboratory')
+            ->whereIn('id', $productIds)
+            ->get()
+            ->keyBy('id');
+
+        return DB::transaction(function () use ($data, $cart, $totals, $items, $products) {
+            $webOrder = WebOrder::create([
+                'customer_name' => $data['customer_name'] ?? null,
+                'customer_phone' => $data['customer_phone'] ?? null,
+
+                'delivery_type' => $data['delivery_type'] ?? null,
+                'delivery_address' => $data['delivery_address'] ?? null,
+
+                'payment_method' => $data['payment_method'] ?? null,
+
+                'items_count' => (int) ($totals['items_count'] ?? $items->count()),
+                'units_count' => (int) ($totals['units_count'] ?? $items->sum(fn($item) => (int) ($item['quantity'] ?? 0))),
+
+                'subtotal_usd' => (float) ($totals['subtotal_usd'] ?? 0),
+                'subtotal_bs' => (float) ($totals['subtotal_bs'] ?? 0),
+
+                'discount_percent' => (float) ($totals['discount_percent'] ?? 0),
+                'discount_usd' => (float) ($totals['discount_usd'] ?? 0),
+                'discount_bs' => (float) ($totals['discount_bs'] ?? 0),
+
+                'total_usd' => (float) ($totals['total_usd'] ?? 0),
+                'total_bs' => (float) ($totals['total_bs'] ?? 0),
+
+                'status' => 'sent_to_whatsapp',
+                'ordered_at' => now(),
+            ]);
+
+            $exchangeRate = 0;
+
+            if (
+                isset($totals['subtotal_usd'], $totals['subtotal_bs']) &&
+                (float) $totals['subtotal_usd'] > 0
+            ) {
+                $exchangeRate = (float) $totals['subtotal_bs'] / (float) $totals['subtotal_usd'];
+            }
+
+            $laboratories = [];
+
+            foreach ($items as $item) {
+                $productId = (int) ($item['product_id'] ?? $item['id']);
+                $quantity = (int) ($item['quantity'] ?? 0);
+
+                $product = $products->get($productId);
+
+                $laboratoryId = $product?->laboratory_id;
+                $laboratoryName = $product?->laboratory?->name ?: 'Sin laboratorio';
+
+                $key = $laboratoryId ? 'lab_' . $laboratoryId : 'sin_laboratorio';
+
+                $priceUsd = (float) ($item['price_usd'] ?? $item['price'] ?? 0);
+                $lineUsd = $priceUsd * $quantity;
+                $lineBs = $exchangeRate > 0 ? $lineUsd * $exchangeRate : 0;
+
+                if (!isset($laboratories[$key])) {
+                    $laboratories[$key] = [
+                        'laboratory_id' => $laboratoryId,
+                        'laboratory_name' => $laboratoryName,
+                        'products_count' => 0,
+                        'units_count' => 0,
+                        'total_usd' => 0,
+                        'total_bs' => 0,
+                    ];
+                }
+
+                $laboratories[$key]['products_count']++;
+                $laboratories[$key]['units_count'] += $quantity;
+                $laboratories[$key]['total_usd'] += $lineUsd;
+                $laboratories[$key]['total_bs'] += $lineBs;
+            }
+
+            foreach ($laboratories as $laboratory) {
+                $webOrder->laboratoryMetrics()->create($laboratory);
+            }
+
+            return $webOrder;
+        });
     }
 }

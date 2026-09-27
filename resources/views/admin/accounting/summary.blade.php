@@ -11,10 +11,8 @@
     >
         <div class="admin-page__header">
             <div>
-                <h1 class="admin-page__title">Resumen diario de contaduría</h1>
-                <p class="admin-page__subtitle">
-                    Consulta el total global facturado y entregado por método de pago.
-                </p>
+                <h1 class="admin-page__title">Resumen diario</h1>
+                
             </div>
 
             <div class="controlled-products-actions">

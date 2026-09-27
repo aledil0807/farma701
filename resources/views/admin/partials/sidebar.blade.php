@@ -67,7 +67,7 @@
             <a href="{{ route('admin.accounting.summary') }}"
                 class="admin-sidebar__link {{ request()->routeIs('admin.accounting.summary') || request()->routeIs('admin.accounting.closures.*') ? 'is-active' : '' }}">
                 <i class="fa-solid fa-cash-register"></i>
-                <span>Contaduría</span>
+                <span>Cierres de caja</span>
             </a>
 
             <a href="{{ route('admin.accounting.cashiers.index') }}"

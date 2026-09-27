@@ -4,10 +4,8 @@
     <div class="admin-page accounting-page">
         <div class="admin-page__header">
             <div>
-                <h1 class="admin-page__title">Contaduría</h1>
-                <p class="admin-page__subtitle">
-                    Consulta y registra los cierres de caja de la farmacia.
-                </p>
+                <h1 class="admin-page__title">Administración</h1>
+                
             </div>
 
             <div class="controlled-products-actions">

@@ -5,9 +5,7 @@
         <div class="admin-page__header">
             <div>
                 <h1 class="admin-page__title">Cajeros</h1>
-                <p class="admin-page__subtitle">
-                    Crea, activa o desactiva los cajeros usados en los cierres de caja.
-                </p>
+                
             </div>
 
             <div class="controlled-products-actions">

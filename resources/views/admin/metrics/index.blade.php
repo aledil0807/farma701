@@ -13,9 +13,7 @@
         <div class="admin-page__header">
             <div>
                 <h1 class="admin-page__title">Métricas</h1>
-                <p class="admin-page__subtitle">
-                    Analiza el rendimiento de los cajeros por día, semana o mes.
-                </p>
+                
             </div>
 
             <div class="controlled-products-actions">

@@ -26,16 +26,7 @@ class Product extends Model
     ];
 
     // Dentro de la clase Product
-    public function getImageUrlAttribute()
-    {
-        if ($this->image_path) {
-            // Esto generará automáticamente la URL correcta: http://localhost:8000/storage/products/imagen.jpg
-            return asset('storage/products/' . $this->image_path);
-        }
 
-        // Imagen por defecto si no hay nada en la base de datos
-        return asset('img/no-image.png');
-    }
     // Relación: Un producto pertenece a una categoría
     public function category()
     {
@@ -205,5 +196,25 @@ class Product extends Model
                 (string) $laboratoryName
             )
         );
+    }
+
+    public function getDefaultImageUrlAttribute(): string
+    {
+        return asset('assets/img/Logo.png');
+    }
+
+    public function getImageUrlAttribute(): string
+    {
+        $imagePath = trim((string) $this->image_path);
+
+        if ($imagePath === '') {
+            return $this->default_image_url;
+        }
+
+        $encodedPath = collect(explode('/', $imagePath))
+            ->map(fn($segment) => rawurlencode($segment))
+            ->implode('/');
+
+        return asset('storage/products/' . $encodedPath);
     }
 }
