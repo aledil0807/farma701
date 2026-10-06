@@ -30,6 +30,18 @@ class ProductsImport implements ToModel
 
         $productName = trim((string) ($row['1'] ?? ''));
 
+        $normalizedProductName = Product::normalizeSearchText($productName);
+
+        $hiddenPublicProducts = [
+            'monjauro',
+            'mounjaro',
+            'ozempic',
+        ];
+
+        $isPublic = !collect($hiddenPublicProducts)->contains(function ($hiddenName) use ($normalizedProductName) {
+            return str_contains($normalizedProductName, $hiddenName);
+        });
+
         $updateData = [
             'name' => $productName,
             'category_id' => $category->id,
@@ -40,18 +52,19 @@ class ProductsImport implements ToModel
             'is_controlled' => (($row['8'] ?? null) === 'S'),
             'image_path' => $row['6'] ?? null,
             'is_active' => true,
+            'is_public' => $isPublic,
             'search_text' => Product::makeSearchText(
                 $productName,
                 $laboratory->name
-                
+
             ),
         ];
 
         Product::updateOrCreate(
             [
                 'id' => $productId,
-            ], 
-                $updateData
+            ],
+            $updateData
         );
 
         return null;

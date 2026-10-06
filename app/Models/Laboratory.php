@@ -30,6 +30,7 @@ class Laboratory extends Model
     {
         return $this->hasMany(Product::class, 'laboratory_id')
             ->where('is_active', true)
+            ->where('is_public', true)
             ->where('cantidad', '>', 0);
     }
 
@@ -39,6 +40,7 @@ class Laboratory extends Model
             $subQuery->select('laboratory_id')
                 ->from('products')
                 ->where('is_active', 1)
+                ->where('is_public', true)
                 ->whereNotNull('laboratory_id');
         });
     }

@@ -22,6 +22,7 @@ class Product extends Model
         'is_monthly_product',
         'monthly_order',
         'is_active',
+        'is_public',
         'search_text',
     ];
 
@@ -197,6 +198,13 @@ class Product extends Model
             )
         );
     }
+    protected $casts = [
+        'has_iva' => 'boolean',
+        'is_controlled' => 'boolean',
+        'is_monthly_product' => 'boolean',
+        'is_active' => 'boolean',
+        'is_public' => 'boolean',
+    ];
 
     public function getDefaultImageUrlAttribute(): string
     {
@@ -216,5 +224,12 @@ class Product extends Model
             ->implode('/');
 
         return asset('storage/products/' . $encodedPath);
+    }
+
+    public function scopePubliclyVisible($query)
+    {
+        return $query
+            ->where('is_active', true)
+            ->where('is_public', true);
     }
 }

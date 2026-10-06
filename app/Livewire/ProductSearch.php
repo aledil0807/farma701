@@ -56,7 +56,8 @@ class ProductSearch extends Component
     public function render()
     {
         $query = Product::with(['laboratory', 'category'])
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->where('is_public', true);
 
         if ($this->mode === 'monthly') {
             $query->where('is_monthly_product', true);
